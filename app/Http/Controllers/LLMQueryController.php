@@ -18,6 +18,7 @@ class LLMQueryController extends Controller
     public function index(Request $request)
     {
         $queries = LLMQuery::query()
+            ->where('user_id', auth()->id())
             ->when($request->provider, fn($q, $provider) => $q->byProvider($provider))
             ->when($request->status, fn($q, $status) => $q->where('status', $status))
             ->latest()
@@ -45,18 +46,26 @@ class LLMQueryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:claude,ollama,lmstudio,claude-code',
+            'provider' => 'required|string|in:claude,ollama,lmstudio,claude-code,local-command',
             'prompt' => 'required|string|min:1',
             'model' => 'nullable|string',
             'options' => 'nullable|array',
+        ]);
+
+        // Merge user_id into options
+        $options = array_merge($validated['options'] ?? [], [
+            'user_id' => auth()->id(),
         ]);
 
         $query = $this->dispatcher->dispatch(
             $validated['provider'],
             $validated['prompt'],
             $validated['model'] ?? null,
-            $validated['options'] ?? []
+            $options
         );
+
+        // Auto-assign user_id to the query
+        $query->update(['user_id' => auth()->id()]);
 
         return redirect()
             ->route('llm-queries.show', $query)
@@ -79,7 +88,7 @@ class LLMQueryController extends Controller
     public function apiStore(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:claude,ollama,lmstudio,claude-code',
+            'provider' => 'required|string|in:claude,ollama,lmstudio,claude-code,local-command',
             'prompt' => 'required|string|min:1',
             'model' => 'nullable|string',
             'options' => 'nullable|array',

@@ -8,19 +8,24 @@ use Illuminate\Support\Facades\Http;
 class LMStudioQueryJob extends BaseLLMJob
 {
     public $queue = 'llm-local';
-    public $timeout = 600;
+    public $timeout = 900; // 15 minutes for reasoning models
+
+    protected ?array $additionalMetadata = null;
 
     /**
      * Execute the LM Studio query using OpenAI-compatible API.
      */
     protected function execute(): string
     {
-        $baseUrl = $this->options['base_url'] ?? 'http://localhost:1234/v1';
+        $baseUrl = $this->options['base_url'] ?? 'http://127.0.0.1:1234/v1';
         $model = $this->model ?? 'local-model';
         $maxTokens = $this->options['max_tokens'] ?? 1024;
         $temperature = $this->options['temperature'] ?? 0.7;
 
-        $response = Http::timeout($this->timeout)
+        // Use a longer timeout for reasoning models (e.g., Magistral)
+        $httpTimeout = $this->options['http_timeout'] ?? $this->timeout;
+
+        $response = Http::timeout($httpTimeout)
             ->post("{$baseUrl}/chat/completions", [
                 'model' => $model,
                 'messages' => [
@@ -39,7 +44,25 @@ class LMStudioQueryJob extends BaseLLMJob
 
         $data = $response->json();
 
-        return $data['choices'][0]['message']['content'] ?? '';
+        // Store additional metadata for reasoning models
+        $choice = $data['choices'][0] ?? [];
+        $message = $choice['message'] ?? [];
+
+        $this->additionalMetadata = [
+            'reasoning_content' => $message['reasoning_content'] ?? null,
+            'finish_reason' => $choice['finish_reason'] ?? null,
+            'usage_stats' => $data['usage'] ?? null,
+        ];
+
+        return $message['content'] ?? '';
+    }
+
+    /**
+     * Get additional metadata collected during execution.
+     */
+    public function getAdditionalMetadata(): ?array
+    {
+        return $this->additionalMetadata;
     }
 
     /**

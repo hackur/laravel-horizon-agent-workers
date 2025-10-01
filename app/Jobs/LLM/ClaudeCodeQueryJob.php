@@ -27,12 +27,19 @@ class ClaudeCodeQueryJob extends BaseLLMJob
     {
         $command = $this->buildCommand();
 
+        // Run through login shell to access user's PATH and claude command
+        $shellCommand = sprintf(
+            'cd %s && %s',
+            escapeshellarg($this->workingDirectory ?? base_path()),
+            $command
+        );
+
         $result = Process::timeout($this->timeout)
-            ->path($this->workingDirectory ?? base_path())
-            ->run($command);
+            ->run(['zsh', '-l', '-c', $shellCommand]);
 
         if ($result->failed()) {
-            throw new \Exception("Claude Code CLI failed: " . $result->errorOutput());
+            $error = trim($result->errorOutput() ?: $result->output());
+            throw new \Exception("Claude Code CLI failed: " . ($error ?: 'Command not found. Ensure claude CLI is installed and accessible in your PATH.'));
         }
 
         return $result->output();

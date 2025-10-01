@@ -13,9 +13,11 @@ class LLMQueryCommand extends Command
      * @var string
      */
     protected $signature = 'llm:query
-                            {provider : The LLM provider (claude, ollama, lmstudio, claude-code)}
+                            {provider : The LLM provider (claude, ollama, lmstudio, claude-code, local-command)}
                             {prompt : The prompt to send to the LLM}
                             {--model= : The model to use (optional)}
+                            {--command= : Command template for local-command provider (use {prompt} placeholder)}
+                            {--shell= : Shell to use for local-command (default: system default)}
                             {--queue= : The queue to use (optional)}
                             {--sync : Run synchronously instead of dispatching to queue}';
 
@@ -24,7 +26,7 @@ class LLMQueryCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Dispatch an LLM query to a background worker job';
+    protected $description = 'Dispatch an LLM query to a background worker job (default: lmstudio at http://127.0.0.1:1234/v1)';
 
     /**
      * Execute the console command.
@@ -46,7 +48,20 @@ class LLMQueryCommand extends Command
         $this->info("Dispatching query to {$provider}...");
 
         try {
-            $query = $dispatcher->dispatch($provider, $prompt, $model);
+            // Build options array
+            $options = [];
+
+            // Add local-command specific options
+            if ($provider === 'local-command') {
+                if ($this->option('command')) {
+                    $options['command'] = $this->option('command');
+                }
+                if ($this->option('shell')) {
+                    $options['shell'] = $this->option('shell');
+                }
+            }
+
+            $query = $dispatcher->dispatch($provider, $prompt, $model, $options);
 
             $this->info("Query dispatched successfully!");
             $this->table(

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\LLM\Claude\ClaudeQueryJob;
 use App\Jobs\LLM\ClaudeCodeQueryJob;
 use App\Jobs\LLM\LMStudio\LMStudioQueryJob;
+use App\Jobs\LLM\LocalCommandJob;
 use App\Jobs\LLM\Ollama\OllamaQueryJob;
 use App\Models\LLMQuery;
 use InvalidArgumentException;
@@ -17,6 +18,8 @@ class LLMQueryDispatcher
     public function dispatch(string $provider, string $prompt, ?string $model = null, array $options = []): LLMQuery
     {
         $llmQuery = LLMQuery::create([
+            'user_id' => $options['user_id'] ?? null,
+            'conversation_id' => $options['conversation_id'] ?? null,
             'provider' => $provider,
             'model' => $model,
             'prompt' => $prompt,
@@ -26,7 +29,7 @@ class LLMQueryDispatcher
 
         $job = $this->createJob($provider, $prompt, $model, $llmQuery->id, $options);
 
-        $job->dispatch();
+        dispatch($job);
 
         return $llmQuery;
     }
@@ -37,7 +40,7 @@ class LLMQueryDispatcher
     public function dispatchOnly(string $provider, string $prompt, ?string $model = null, array $options = []): void
     {
         $job = $this->createJob($provider, $prompt, $model, null, $options);
-        $job->dispatch();
+        dispatch($job);
     }
 
     /**
@@ -50,6 +53,7 @@ class LLMQueryDispatcher
             'ollama' => new OllamaQueryJob($prompt, $model, $llmQueryId, $options),
             'lmstudio' => new LMStudioQueryJob($prompt, $model, $llmQueryId, $options),
             'claude-code' => new ClaudeCodeQueryJob($prompt, $model, $llmQueryId, $options),
+            'local-command' => new LocalCommandJob($prompt, $model, $llmQueryId, $options),
             default => throw new InvalidArgumentException("Unsupported provider: {$provider}"),
         };
     }
@@ -81,6 +85,12 @@ class LLMQueryDispatcher
             'claude-code' => [
                 'name' => 'Claude Code CLI',
                 'description' => 'Claude Code command-line interface',
+                'queue' => 'llm-local',
+                'models' => [],
+            ],
+            'local-command' => [
+                'name' => 'Local Command Execution',
+                'description' => 'Execute any local shell command with your user environment (e.g., claude, curl, python)',
                 'queue' => 'llm-local',
                 'models' => [],
             ],

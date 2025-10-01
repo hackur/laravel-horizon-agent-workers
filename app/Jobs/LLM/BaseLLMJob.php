@@ -2,6 +2,9 @@
 
 namespace App\Jobs\LLM;
 
+use App\Events\MessageReceived;
+use App\Events\QueryStatusUpdated;
+use App\Models\ConversationMessage;
 use App\Models\LLMQuery;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -47,6 +50,9 @@ abstract class BaseLLMJob implements ShouldQueue
                 $llmQuery = LLMQuery::find($this->llmQueryId);
                 if ($llmQuery) {
                     $llmQuery->update(['status' => 'processing']);
+
+                    // Broadcast status update to processing
+                    broadcast(new QueryStatusUpdated($llmQuery->fresh()));
                 }
             }
 
@@ -55,12 +61,42 @@ abstract class BaseLLMJob implements ShouldQueue
             $duration = round((microtime(true) - $startTime) * 1000);
 
             if ($llmQuery) {
-                $llmQuery->update([
+                $updateData = [
                     'status' => 'completed',
                     'response' => $response,
                     'duration_ms' => $duration,
                     'completed_at' => now(),
-                ]);
+                ];
+
+                // Check if job has additional metadata to store (e.g., reasoning_content)
+                if (method_exists($this, 'getAdditionalMetadata')) {
+                    $additionalMetadata = $this->getAdditionalMetadata();
+                    if ($additionalMetadata) {
+                        $updateData = array_merge($updateData, array_filter($additionalMetadata));
+                    }
+                }
+
+                $llmQuery->update($updateData);
+
+                // Broadcast status update to completed
+                broadcast(new QueryStatusUpdated($llmQuery->fresh()));
+
+                // If query has conversation, broadcast message received event
+                if ($llmQuery->conversation_id) {
+                    // Create or find the assistant message
+                    $message = ConversationMessage::firstOrCreate(
+                        [
+                            'conversation_id' => $llmQuery->conversation_id,
+                            'llm_query_id' => $llmQuery->id,
+                            'role' => 'assistant',
+                        ],
+                        [
+                            'content' => $response,
+                        ]
+                    );
+
+                    broadcast(new MessageReceived($llmQuery->conversation_id, $message, $llmQuery->fresh()));
+                }
             }
 
             Log::info('LLM job completed', [
@@ -74,6 +110,9 @@ abstract class BaseLLMJob implements ShouldQueue
                     'status' => 'failed',
                     'error' => $e->getMessage(),
                 ]);
+
+                // Broadcast status update to failed
+                broadcast(new QueryStatusUpdated($llmQuery->fresh()));
             }
 
             Log::error('LLM job failed', [
