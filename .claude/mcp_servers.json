@@ -1,0 +1,38 @@
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y", 
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
+    },
+    "browser-tools": {
+      "command": "npx", 
+      "args": [
+        "@agent-infra/mcp-server-browser@latest"
+      ]
+    },
+    "ide": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-ide"  
+      ]
+    },
+    "playwright-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp"
+      ]
+    }
+  }
+}

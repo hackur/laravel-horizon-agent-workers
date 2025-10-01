@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "*",
+      "Bash(./dev.sh:*)",
+      "Bash(php artisan dusk:chrome-driver:*)",
+      "Bash(./vendor/bin/sail test:*)",
+      "Bash(./vendor/bin/sail artisan make:migration:*)",
+      "Bash(ls:*)",
+      "Bash(rm:tests/*)",
+      "Bash(./vendor/bin/sail artisan tinker:*)",
+      "Bash(./vendor/bin/sail artisan migrate:fresh --seed)",
+      "Bash(./vendor/bin/sail artisan db:show submissions)",
+      "Bash(touch:*)",
+      "Bash(php artisan:*)",
+      "Bash(npm run build:*)",
+      "Bash(./vendor/bin/sail --version)",
+      "Bash(yarn build)",
+      "Bash(./vendor/bin/sail up:*)",
+      "Bash(./vendor/bin/sail yarn:*)",
+      "Bash(./vendor/bin/sail artisan migrate)",
+      "Bash(./vendor/bin/sail artisan migrate:*)",
+      "Bash(./vendor/bin/sail artisan cache:clear)",
+      "Bash(./vendor/bin/sail artisan config:clear)",
+      "Bash(./vendor/bin/sail artisan route:clear)",
+      "Bash(./vendor/bin/sail artisan view:clear)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  },
+  "enableAllProjectMcpServers": true
+}
