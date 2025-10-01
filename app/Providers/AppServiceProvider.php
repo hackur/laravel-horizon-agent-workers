@@ -19,6 +19,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register job event listeners
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Queue\Events\JobProcessed::class,
+            [\App\Listeners\UpdateLLMQueryStatus::class, 'handleJobProcessed']
+        );
+
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Queue\Events\JobFailed::class,
+            [\App\Listeners\UpdateLLMQueryStatus::class, 'handleJobFailed']
+        );
     }
 }
