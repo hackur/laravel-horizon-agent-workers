@@ -46,7 +46,7 @@ class ProviderHealthCheck
      * lmstudio, and local-command providers. Returns an array with status, message, timestamp,
      * and details about the provider's health.
      *
-     * @param  string  $provider The provider identifier (claude, ollama, lmstudio, local-command)
+     * @param  string  $provider  The provider identifier (claude, ollama, lmstudio, local-command)
      * @return array Health check result with keys: status, message, timestamp, details
      */
     public function check(string $provider): array
@@ -70,7 +70,7 @@ class ProviderHealthCheck
      * specified by cacheTtl (default 60 seconds). Reduces overhead when health checks are performed
      * frequently. Use clearCache() to invalidate cached results.
      *
-     * @param  string  $provider The provider identifier to check
+     * @param  string  $provider  The provider identifier to check
      * @return array Cached health check result with keys: status, message, timestamp, details
      */
     public function checkCached(string $provider): array
@@ -108,7 +108,7 @@ class ProviderHealthCheck
      * healthy state. Uses cached results to minimize performance overhead. Only returns true if
      * the provider's status is exactly 'healthy' (degraded/warning status returns false).
      *
-     * @param  string  $provider The provider identifier to check
+     * @param  string  $provider  The provider identifier to check
      * @return bool True if the provider is healthy, false otherwise
      */
     public function isHealthy(string $provider): bool
@@ -125,8 +125,7 @@ class ProviderHealthCheck
      * cache is cleared. If no provider is specified, all provider health check caches are cleared.
      * Useful when you want fresh health status information immediately.
      *
-     * @param  string|null  $provider Optional provider identifier to clear, or null to clear all providers
-     * @return void
+     * @param  string|null  $provider  Optional provider identifier to clear, or null to clear all providers
      */
     public function clearCache(?string $provider = null): void
     {
@@ -394,8 +393,8 @@ class ProviderHealthCheck
      * Creates a standardized health check response indicating a successful status.
      * Returns an array with status='healthy', message, current timestamp, and optional details.
      *
-     * @param  string  $message A user-friendly message describing the healthy status
-     * @param  array  $details Optional associative array with additional details about the provider
+     * @param  string  $message  A user-friendly message describing the healthy status
+     * @param  array  $details  Optional associative array with additional details about the provider
      * @return array Standardized health check response
      */
     protected function healthCheckSuccess(string $message, array $details = []): array
@@ -415,8 +414,8 @@ class ProviderHealthCheck
      * The provider may still function but has reduced capacity or missing configuration.
      * Returns status='degraded' with message, timestamp, and optional details.
      *
-     * @param  string  $message A user-friendly message describing the warning status
-     * @param  array  $details Optional associative array with additional details about the issue
+     * @param  string  $message  A user-friendly message describing the warning status
+     * @param  array  $details  Optional associative array with additional details about the issue
      * @return array Standardized health check response with degraded status
      */
     protected function healthCheckWarning(string $message, array $details = []): array
@@ -436,8 +435,8 @@ class ProviderHealthCheck
      * The provider is not accessible or is not properly configured. Returns status='unhealthy'
      * with message, timestamp, and optional diagnostic details.
      *
-     * @param  string  $message A user-friendly message describing the error status
-     * @param  array  $details Optional associative array with error details and diagnostic information
+     * @param  string  $message  A user-friendly message describing the error status
+     * @param  array  $details  Optional associative array with error details and diagnostic information
      * @return array Standardized health check response with unhealthy status
      */
     protected function healthCheckError(string $message, array $details = []): array
@@ -469,7 +468,7 @@ class ProviderHealthCheck
      * Configures how long health check results are cached. Allows customizing the cache duration
      * to balance between performance and freshness of health status. Returns self for method chaining.
      *
-     * @param  int  $ttl The cache TTL in seconds
+     * @param  int  $ttl  The cache TTL in seconds
      * @return $this For method chaining
      */
     public function setCacheTtl(int $ttl): self
@@ -498,7 +497,7 @@ class ProviderHealthCheck
      * Configures how long to wait for responses during health checks. Useful for slow network
      * conditions or heavily loaded systems. Returns self for method chaining.
      *
-     * @param  int  $timeout The timeout in seconds
+     * @param  int  $timeout  The timeout in seconds
      * @return $this For method chaining
      */
     public function setTimeout(int $timeout): self

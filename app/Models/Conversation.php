@@ -136,7 +136,7 @@ class Conversation extends Model
     }
 
     /**
-     * Scope a query to search conversations by title.
+     * Scope a query to search conversations by title (legacy).
      *
      * @param  Builder  $query  The query builder instance
      * @param  string  $search  The search term
@@ -145,6 +145,100 @@ class Conversation extends Model
     public function scopeSearch(Builder $query, string $search): Builder
     {
         return $query->where('title', 'like', "%{$search}%");
+    }
+
+    /**
+     * Scope a query to perform full-text search across title and messages.
+     *
+     * This uses SQLite's FTS5 for efficient full-text search. Searches both
+     * conversation titles and message content, returning conversations that
+     * contain the search term in either location.
+     *
+     * @param  Builder  $query  The query builder instance
+     * @param  string  $search  The search term (supports FTS5 query syntax)
+     * @return Builder The modified query builder
+     */
+    public function scopeFullTextSearch(Builder $query, string $search): Builder
+    {
+        if (empty(trim($search))) {
+            return $query;
+        }
+
+        // Escape special FTS5 characters and prepare search term
+        $searchTerm = $this->prepareFtsSearchTerm($search);
+
+        // Search in both conversation titles and message content
+        return $query->where(function ($q) use ($searchTerm) {
+            // Search in conversation titles
+            $q->whereIn('id', function ($subQuery) use ($searchTerm) {
+                $subQuery->select('id')
+                    ->from('conversations_fts')
+                    ->whereRaw('conversations_fts MATCH ?', [$searchTerm]);
+            })
+            // OR search in conversation messages
+                ->orWhereIn('id', function ($subQuery) use ($searchTerm) {
+                    $subQuery->select('conversation_id')
+                        ->from('conversation_messages_fts')
+                        ->whereRaw('conversation_messages_fts MATCH ?', [$searchTerm]);
+                });
+        });
+    }
+
+    /**
+     * Scope a query to filter by date range.
+     *
+     * @param  Builder  $query  The query builder instance
+     * @param  string|null  $startDate  Start date (Y-m-d format)
+     * @param  string|null  $endDate  End date (Y-m-d format)
+     * @return Builder The modified query builder
+     */
+    public function scopeDateRange(Builder $query, ?string $startDate, ?string $endDate): Builder
+    {
+        if ($startDate) {
+            $query->where('created_at', '>=', $startDate.' 00:00:00');
+        }
+
+        if ($endDate) {
+            $query->where('created_at', '<=', $endDate.' 23:59:59');
+        }
+
+        return $query;
+    }
+
+    /**
+     * Scope a query to filter by query status.
+     *
+     * @param  Builder  $query  The query builder instance
+     * @param  string  $status  The status to filter by (pending, processing, completed, failed)
+     * @return Builder The modified query builder
+     */
+    public function scopeByStatus(Builder $query, string $status): Builder
+    {
+        return $query->whereHas('queries', function ($q) use ($status) {
+            $q->where('status', $status);
+        });
+    }
+
+    /**
+     * Prepare search term for FTS5 query.
+     *
+     * Escapes special FTS5 characters and wraps phrases in quotes for exact matching.
+     *
+     * @param  string  $search  The raw search term
+     * @return string The prepared search term
+     */
+    protected function prepareFtsSearchTerm(string $search): string
+    {
+        // Remove any existing quotes and trim
+        $search = trim(str_replace('"', '', $search));
+
+        // If the search contains multiple words, treat as phrase search
+        if (str_contains($search, ' ')) {
+            return '"'.$search.'"';
+        }
+
+        // Single word search - escape special characters
+        return $search;
     }
 
     /**

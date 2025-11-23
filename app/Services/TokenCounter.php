@@ -54,8 +54,8 @@ class TokenCounter
     /**
      * Count tokens in a text string
      *
-     * @param string $text The text to count tokens for
-     * @param string|null $model Optional model name for model-specific counting
+     * @param  string  $text  The text to count tokens for
+     * @param  string|null  $model  Optional model name for model-specific counting
      * @return int Estimated token count
      */
     public function count(string $text, ?string $model = null): int
@@ -81,8 +81,8 @@ class TokenCounter
     /**
      * Count tokens in a message array (with role and content)
      *
-     * @param array $message Message array with 'role' and 'content' keys
-     * @param string|null $model Optional model name for model-specific counting
+     * @param  array  $message  Message array with 'role' and 'content' keys
+     * @param  string|null  $model  Optional model name for model-specific counting
      * @return int Estimated token count including role overhead
      */
     public function countMessage(array $message, ?string $model = null): int
@@ -102,8 +102,8 @@ class TokenCounter
     /**
      * Count tokens in an array of messages
      *
-     * @param array $messages Array of messages with 'role' and 'content'
-     * @param string|null $model Optional model name for model-specific counting
+     * @param  array  $messages  Array of messages with 'role' and 'content'
+     * @param  string|null  $model  Optional model name for model-specific counting
      * @return int Total estimated token count
      */
     public function countMessages(array $messages, ?string $model = null): int
@@ -123,7 +123,7 @@ class TokenCounter
     /**
      * Get the context window limit for a model
      *
-     * @param string|null $model Model name or provider
+     * @param  string|null  $model  Model name or provider
      * @return int Maximum context window size in tokens
      */
     public function getContextLimit(?string $model = null): int
@@ -153,7 +153,7 @@ class TokenCounter
      * Returns the context limit minus a buffer to allow for the model's response.
      * For Claude models, we reserve ~4000 tokens for the response.
      *
-     * @param string|null $model Model name or provider
+     * @param  string|null  $model  Model name or provider
      * @return int Safe context limit for input
      */
     public function getSafeContextLimit(?string $model = null): int
@@ -169,21 +169,22 @@ class TokenCounter
     /**
      * Calculate how many tokens are remaining in context
      *
-     * @param int $currentTokens Current token count
-     * @param string|null $model Model name or provider
+     * @param  int  $currentTokens  Current token count
+     * @param  string|null  $model  Model name or provider
      * @return int Remaining tokens available
      */
     public function getRemainingTokens(int $currentTokens, ?string $model = null): int
     {
         $limit = $this->getSafeContextLimit($model);
+
         return max(0, $limit - $currentTokens);
     }
 
     /**
      * Calculate percentage of context used
      *
-     * @param int $currentTokens Current token count
-     * @param string|null $model Model name or provider
+     * @param  int  $currentTokens  Current token count
+     * @param  string|null  $model  Model name or provider
      * @return float Percentage of context used (0-100)
      */
     public function getContextUsagePercent(int $currentTokens, ?string $model = null): float
@@ -199,9 +200,9 @@ class TokenCounter
     /**
      * Check if context is approaching the limit
      *
-     * @param int $currentTokens Current token count
-     * @param string|null $model Model name or provider
-     * @param float $threshold Threshold percentage (default 80%)
+     * @param  int  $currentTokens  Current token count
+     * @param  string|null  $model  Model name or provider
+     * @param  float  $threshold  Threshold percentage (default 80%)
      * @return bool True if approaching limit
      */
     public function isApproachingLimit(int $currentTokens, ?string $model = null, float $threshold = 80.0): bool
@@ -212,8 +213,8 @@ class TokenCounter
     /**
      * Check if context has exceeded the limit
      *
-     * @param int $currentTokens Current token count
-     * @param string|null $model Model name or provider
+     * @param  int  $currentTokens  Current token count
+     * @param  string|null  $model  Model name or provider
      * @return bool True if exceeded
      */
     public function isOverLimit(int $currentTokens, ?string $model = null): bool
@@ -224,8 +225,8 @@ class TokenCounter
     /**
      * Get warning level for context usage
      *
-     * @param int $currentTokens Current token count
-     * @param string|null $model Model name or provider
+     * @param  int  $currentTokens  Current token count
+     * @param  string|null  $model  Model name or provider
      * @return string 'safe', 'warning', 'critical', or 'exceeded'
      */
     public function getWarningLevel(int $currentTokens, ?string $model = null): string
@@ -246,7 +247,7 @@ class TokenCounter
     /**
      * Get chars-per-token ratio for a model
      *
-     * @param string|null $model Model name or provider
+     * @param  string|null  $model  Model name or provider
      * @return float Characters per token ratio
      */
     private function getCharsPerToken(?string $model = null): float
@@ -277,7 +278,7 @@ class TokenCounter
     /**
      * Check if model is a Claude model
      *
-     * @param string|null $model Model name
+     * @param  string|null  $model  Model name
      * @return bool True if Claude model
      */
     private function isClaudeModel(?string $model = null): bool
@@ -292,27 +293,27 @@ class TokenCounter
     /**
      * Format token count for display
      *
-     * @param int $tokens Token count
-     * @param bool $abbreviated Use abbreviated format (K for thousands)
+     * @param  int  $tokens  Token count
+     * @param  bool  $abbreviated  Use abbreviated format (K for thousands)
      * @return string Formatted token count
      */
     public function formatTokenCount(int $tokens, bool $abbreviated = true): string
     {
-        if (!$abbreviated || $tokens < 1000) {
+        if (! $abbreviated || $tokens < 1000) {
             return number_format($tokens);
         }
 
         if ($tokens < 1000000) {
-            return number_format($tokens / 1000, 1) . 'K';
+            return number_format($tokens / 1000, 1).'K';
         }
 
-        return number_format($tokens / 1000000, 1) . 'M';
+        return number_format($tokens / 1000000, 1).'M';
     }
 
     /**
      * Get model display name
      *
-     * @param string|null $model Model name
+     * @param  string|null  $model  Model name
      * @return string Display name
      */
     public function getModelDisplayName(?string $model = null): string

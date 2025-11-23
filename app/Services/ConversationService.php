@@ -11,6 +11,19 @@ use Illuminate\Support\Facades\Log;
 class ConversationService
 {
     /**
+     * Token counter service
+     */
+    protected TokenCounter $tokenCounter;
+
+    /**
+     * Constructor with dependency injection
+     */
+    public function __construct(TokenCounter $tokenCounter)
+    {
+        $this->tokenCounter = $tokenCounter;
+    }
+
+    /**
      * Add a message to a conversation.
      *
      * Creates a new conversation message with the specified role and content.
@@ -47,29 +60,181 @@ class ConversationService
     }
 
     /**
-     * Get conversation context for LLM (message history).
+     * Get conversation context for LLM (message history) with token management.
      *
      * Retrieves message history for a conversation in the format needed for LLM context.
-     * Messages are returned in chronological order with a configurable limit.
-     * Strips metadata and returns only role and content for LLM APIs.
+     * Automatically manages token counts and truncates older messages if the context
+     * exceeds the model's safe context limit. Logs warnings when truncation occurs.
      *
      * @param  Conversation  $conversation  The conversation to get context for
-     * @param  int  $messageLimit  Maximum number of messages to return (default 20)
+     * @param  int  $messageLimit  Maximum number of messages to return (default 100)
      * @return array Array of messages with 'role' and 'content' keys
      */
-    public function getConversationContext(Conversation $conversation, int $messageLimit = 20): array
+    public function getConversationContext(Conversation $conversation, int $messageLimit = 100): array
     {
+        // Get model for token counting
+        $model = $conversation->model ?? $conversation->provider;
+
+        // Get all messages in chronological order (oldest first)
         $messages = $conversation->messages()
             ->orderBy('created_at', 'asc')
             ->limit($messageLimit)
             ->get();
 
-        return $messages->map(function ($message) {
+        // Convert to LLM format
+        $formattedMessages = $messages->map(function ($message) {
             return [
                 'role' => $message->role,
                 'content' => $message->content,
             ];
         })->toArray();
+
+        // Count tokens in the current context
+        $totalTokens = $this->tokenCounter->countMessages($formattedMessages, $model);
+        $safeLimit = $this->tokenCounter->getSafeContextLimit($model);
+
+        // If we're over the limit, truncate from the beginning
+        if ($totalTokens > $safeLimit) {
+            $truncatedMessages = $this->truncateContext($formattedMessages, $model, $safeLimit);
+
+            $originalCount = count($formattedMessages);
+            $truncatedCount = count($truncatedMessages);
+            $messagesRemoved = $originalCount - $truncatedCount;
+
+            Log::warning('Conversation context truncated due to token limit', [
+                'conversation_id' => $conversation->id,
+                'model' => $model,
+                'original_messages' => $originalCount,
+                'truncated_messages' => $truncatedCount,
+                'messages_removed' => $messagesRemoved,
+                'original_tokens' => $totalTokens,
+                'safe_limit' => $safeLimit,
+                'final_tokens' => $this->tokenCounter->countMessages($truncatedMessages, $model),
+            ]);
+
+            return $truncatedMessages;
+        }
+
+        // Check if we're approaching the limit (>75%)
+        if ($this->tokenCounter->isApproachingLimit($totalTokens, $model, 75.0)) {
+            $usagePercent = $this->tokenCounter->getContextUsagePercent($totalTokens, $model);
+
+            Log::info('Conversation context approaching token limit', [
+                'conversation_id' => $conversation->id,
+                'model' => $model,
+                'total_tokens' => $totalTokens,
+                'safe_limit' => $safeLimit,
+                'usage_percent' => round($usagePercent, 2),
+                'message_count' => count($formattedMessages),
+            ]);
+        }
+
+        return $formattedMessages;
+    }
+
+    /**
+     * Truncate conversation context to fit within token limits.
+     *
+     * Removes older messages from the beginning of the conversation until
+     * the token count is under the safe limit. Always preserves the most
+     * recent messages to maintain conversation coherence.
+     *
+     * @param  array  $messages  Array of messages with 'role' and 'content'
+     * @param  string|null  $model  Model name for token counting
+     * @param  int  $safeLimit  Safe token limit to stay under
+     * @return array Truncated array of messages
+     */
+    protected function truncateContext(array $messages, ?string $model, int $safeLimit): array
+    {
+        $messageCount = count($messages);
+
+        // Always keep at least 2 messages (one exchange)
+        $minMessages = min(2, $messageCount);
+
+        // Start from the end and work backwards, keeping messages that fit
+        $keptMessages = [];
+        $currentTokens = 0;
+
+        // Iterate from newest to oldest
+        for ($i = $messageCount - 1; $i >= 0; $i--) {
+            $message = $messages[$i];
+            $messageTokens = $this->tokenCounter->countMessage($message, $model);
+
+            // Check if adding this message would exceed the limit
+            if ($currentTokens + $messageTokens > $safeLimit) {
+                // Only break if we have the minimum messages
+                if (count($keptMessages) >= $minMessages) {
+                    break;
+                }
+            }
+
+            // Add message to the beginning of kept messages
+            array_unshift($keptMessages, $message);
+            $currentTokens += $messageTokens;
+        }
+
+        return $keptMessages;
+    }
+
+    /**
+     * Get conversation context with detailed token information.
+     *
+     * Returns both the message context and comprehensive token statistics
+     * including usage percentage, warning level, and truncation status.
+     *
+     * @param  Conversation  $conversation  The conversation to analyze
+     * @param  int  $messageLimit  Maximum number of messages to consider
+     * @return array Array containing:
+     *               - 'messages': array of formatted messages
+     *               - 'token_info': array with detailed token statistics
+     */
+    public function getConversationContextWithTokenInfo(Conversation $conversation, int $messageLimit = 100): array
+    {
+        $model = $conversation->model ?? $conversation->provider;
+
+        // Get all messages
+        $allMessages = $conversation->messages()
+            ->orderBy('created_at', 'asc')
+            ->limit($messageLimit)
+            ->get();
+
+        // Format messages
+        $formattedMessages = $allMessages->map(function ($message) {
+            return [
+                'role' => $message->role,
+                'content' => $message->content,
+            ];
+        })->toArray();
+
+        // Count tokens before truncation
+        $originalTokens = $this->tokenCounter->countMessages($formattedMessages, $model);
+        $safeLimit = $this->tokenCounter->getSafeContextLimit($model);
+        $fullLimit = $this->tokenCounter->getContextLimit($model);
+
+        // Get truncated context (if needed)
+        $finalMessages = $this->getConversationContext($conversation, $messageLimit);
+        $finalTokens = $this->tokenCounter->countMessages($finalMessages, $model);
+
+        $wasTruncated = count($formattedMessages) > count($finalMessages);
+
+        return [
+            'messages' => $finalMessages,
+            'token_info' => [
+                'current_tokens' => $finalTokens,
+                'original_tokens' => $originalTokens,
+                'safe_limit' => $safeLimit,
+                'full_limit' => $fullLimit,
+                'remaining_tokens' => $this->tokenCounter->getRemainingTokens($finalTokens, $model),
+                'usage_percent' => round($this->tokenCounter->getContextUsagePercent($finalTokens, $model), 2),
+                'warning_level' => $this->tokenCounter->getWarningLevel($finalTokens, $model),
+                'was_truncated' => $wasTruncated,
+                'messages_count' => count($finalMessages),
+                'original_messages_count' => count($formattedMessages),
+                'messages_removed' => $wasTruncated ? count($formattedMessages) - count($finalMessages) : 0,
+                'model' => $model,
+                'model_display_name' => $this->tokenCounter->getModelDisplayName($model),
+            ],
+        ];
     }
 
     /**

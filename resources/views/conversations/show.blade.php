@@ -94,6 +94,130 @@
                 </div>
             @endif
 
+            <!-- Token Usage Panel -->
+            @if(isset($tokenInfo))
+                <div class="bg-white shadow-sm sm:rounded-lg mb-6">
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+                            </svg>
+                            Context Token Usage
+                        </h3>
+
+                        <!-- Token Usage Bar -->
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="font-medium">
+                                    {{ number_format($tokenInfo['current_tokens']) }} / {{ number_format($tokenInfo['safe_limit']) }} tokens
+                                    ({{ $tokenInfo['usage_percent'] }}%)
+                                </span>
+                                <span class="text-gray-600">
+                                    {{ number_format($tokenInfo['remaining_tokens']) }} remaining
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                @php
+                                    $barColor = match($tokenInfo['warning_level']) {
+                                        'exceeded' => 'bg-red-600',
+                                        'critical' => 'bg-red-500',
+                                        'warning' => 'bg-yellow-500',
+                                        default => 'bg-green-500'
+                                    };
+                                    $barWidth = min(100, $tokenInfo['usage_percent']);
+                                @endphp
+                                <div class="{{ $barColor }} h-3 transition-all duration-300" style="width: {{ $barWidth }}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Warning Messages -->
+                        @if($tokenInfo['warning_level'] === 'exceeded')
+                            <div class="bg-red-50 border-l-4 border-red-400 p-3 mb-4">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-4 w-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-xs text-red-700 font-semibold">
+                                            Context limit exceeded! Older messages have been truncated.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @elseif($tokenInfo['warning_level'] === 'critical')
+                            <div class="bg-red-50 border-l-4 border-red-400 p-3 mb-4">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-4 w-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-xs text-red-700 font-semibold">
+                                            Critical: Context nearly full ({{ $tokenInfo['usage_percent'] }}%). Future messages may be truncated.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @elseif($tokenInfo['warning_level'] === 'warning')
+                            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-xs text-yellow-700">
+                                            Warning: Context approaching limit ({{ $tokenInfo['usage_percent'] }}%). Consider starting a new conversation soon.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($tokenInfo['was_truncated'])
+                            <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-4">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-4 w-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-xs text-blue-700">
+                                            {{ $tokenInfo['messages_removed'] }} older {{ $tokenInfo['messages_removed'] === 1 ? 'message' : 'messages' }} truncated to fit context window. Showing {{ $tokenInfo['messages_count'] }} of {{ $tokenInfo['original_messages_count'] }} total messages.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Token Details -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <div class="bg-gray-50 rounded p-2">
+                                <div class="text-gray-500 uppercase tracking-wide">Model</div>
+                                <div class="font-semibold text-gray-900 mt-1">{{ $tokenInfo['model_display_name'] }}</div>
+                            </div>
+                            <div class="bg-gray-50 rounded p-2">
+                                <div class="text-gray-500 uppercase tracking-wide">Messages</div>
+                                <div class="font-semibold text-gray-900 mt-1">{{ number_format($tokenInfo['messages_count']) }}</div>
+                            </div>
+                            <div class="bg-gray-50 rounded p-2">
+                                <div class="text-gray-500 uppercase tracking-wide">Full Limit</div>
+                                <div class="font-semibold text-gray-900 mt-1">{{ number_format($tokenInfo['full_limit']) }}</div>
+                            </div>
+                            <div class="bg-gray-50 rounded p-2">
+                                <div class="text-gray-500 uppercase tracking-wide">Safe Limit</div>
+                                <div class="font-semibold text-gray-900 mt-1">{{ number_format($tokenInfo['safe_limit']) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Conversation Statistics Panel -->
             @if(isset($statistics) && $statistics['total_queries'] > 0)
                 <div class="bg-white shadow-sm sm:rounded-lg mb-6">

@@ -54,7 +54,7 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function validateEnvironment(): void
     {
-        $validator = new \App\Services\EnvironmentValidator();
+        $validator = new \App\Services\EnvironmentValidator;
 
         // In testing environment, skip validation to avoid issues with test setup
         if (app()->environment('testing')) {

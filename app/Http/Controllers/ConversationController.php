@@ -25,11 +25,15 @@ class ConversationController extends Controller
     /**
      * Display a listing of the user's conversations.
      *
-     * Retrieves paginated conversations for the authenticated user with support for
-     * filtering by provider and searching by title. Results are sorted by most recent
-     * message timestamp.
+     * Retrieves paginated conversations for the authenticated user with support for:
+     * - Full-text search across titles and message content
+     * - Filtering by provider
+     * - Date range filtering
+     * - Status filtering
+     * - Search type (content or title only)
+     * Results are sorted by most recent message timestamp or relevance.
      *
-     * @param  Request  $request  The HTTP request containing optional filters (provider, search)
+     * @param  Request  $request  The HTTP request containing optional filters
      * @return \Illuminate\View\View The conversations index view
      *
      * @throws \Illuminate\Auth\AuthenticationException If user is not authenticated
@@ -41,22 +45,60 @@ class ConversationController extends Controller
             ->with(['messages' => fn ($q) => $q->latest()->limit(1)])
             ->withCount('messages');
 
+        // Full-text search across title and message content
+        if ($request->filled('search')) {
+            $search = substr($request->search, 0, 255); // Limit length for security
+
+            // Determine search type (content search uses FTS, title uses simple LIKE)
+            if ($request->search_type === 'content' || ! $request->filled('search_type')) {
+                // Full-text search in messages and titles (default)
+                $query->fullTextSearch($search);
+            } else {
+                // Simple title search (legacy mode)
+                $query->search($search);
+            }
+        }
+
         // Filter by provider if specified (validate input)
-        if ($request->provider && in_array($request->provider, ['claude', 'ollama', 'lmstudio', 'local-command'])) {
+        if ($request->filled('provider') && in_array($request->provider, ['claude', 'ollama', 'lmstudio', 'local-command'])) {
             $query->where('provider', $request->provider);
         }
 
-        // Search by title (sanitize input)
-        if ($request->search) {
-            $search = substr($request->search, 0, 255); // Limit length
-            $query->where('title', 'like', '%'.$search.'%');
+        // Filter by date range
+        if ($request->filled('start_date') || $request->filled('end_date')) {
+            $query->dateRange($request->start_date, $request->end_date);
         }
 
-        $conversations = $query->latest('last_message_at')->paginate(15);
+        // Filter by status
+        if ($request->filled('status') && in_array($request->status, ['pending', 'processing', 'completed', 'failed'])) {
+            $query->byStatus($request->status);
+        }
+
+        // Apply sorting
+        $sortBy = $request->get('sort_by', 'recent');
+        if ($sortBy === 'oldest') {
+            $query->orderBy('last_message_at', 'asc');
+        } elseif ($sortBy === 'title') {
+            $query->orderBy('title', 'asc');
+        } else {
+            // Default: most recent
+            $query->latest('last_message_at');
+        }
+
+        $conversations = $query->paginate(15)->withQueryString();
 
         return view('conversations.index', [
             'conversations' => $conversations,
             'providers' => $this->dispatcher->getProviders(),
+            'searchTerm' => $request->search,
+            'filters' => [
+                'provider' => $request->provider,
+                'status' => $request->status,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'search_type' => $request->search_type ?? 'content',
+                'sort_by' => $sortBy,
+            ],
         ]);
     }
 
@@ -138,10 +180,11 @@ class ConversationController extends Controller
      *
      * Retrieves and displays a specific conversation with all its messages and queries.
      * Messages are loaded with their associated LLM queries and sorted chronologically.
-     * Enforces authorization - users can only view their own conversations.
+     * Includes token usage information and warnings. Enforces authorization - users can
+     * only view their own conversations.
      *
      * @param  Conversation  $conversation  The conversation model to display
-     * @return \Illuminate\View\View The conversation show view with messages and queries
+     * @return \Illuminate\View\View The conversation show view with messages, queries, and token info
      *
      * @throws \Illuminate\Auth\AuthenticationException If user is not authenticated
      * @throws \Symfony\Component\HttpKernel\Exception\HttpException (403) If user is not the conversation owner
@@ -161,10 +204,14 @@ class ConversationController extends Controller
         // Get conversation statistics including costs
         $statistics = $this->conversationService->getStatistics($conversation);
 
+        // Get token information for the conversation context
+        $contextData = $this->conversationService->getConversationContextWithTokenInfo($conversation);
+
         return view('conversations.show', [
             'conversation' => $conversation,
             'providers' => $this->dispatcher->getProviders(),
             'statistics' => $statistics,
+            'tokenInfo' => $contextData['token_info'],
         ]);
     }
 

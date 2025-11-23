@@ -41,10 +41,11 @@ class LocalCommandJob extends BaseLLMJob
      * prevent command injection and unauthorized file access. Throws exceptions if
      * any parameter fails validation.
      *
-     * @param  string  $prompt The user prompt/input for the command
-     * @param  string|null  $model Optional model specification
-     * @param  int|null  $llmQueryId Optional LLMQuery ID for tracking
-     * @param  array  $options Options including command, working_directory, shell
+     * @param  string  $prompt  The user prompt/input for the command
+     * @param  string|null  $model  Optional model specification
+     * @param  int|null  $llmQueryId  Optional LLMQuery ID for tracking
+     * @param  array  $options  Options including command, working_directory, shell
+     *
      * @throws \InvalidArgumentException If command, directory, or shell fails validation
      */
     public function __construct(string $prompt, ?string $model = null, ?int $llmQueryId = null, array $options = [])
@@ -70,8 +71,9 @@ class LocalCommandJob extends BaseLLMJob
      * whitelist and doesn't contain shell metacharacters or dangerous patterns.
      * Protects against command injection attacks.
      *
-     * @param  string  $command The command to validate
+     * @param  string  $command  The command to validate
      * @return string The validated command
+     *
      * @throws \InvalidArgumentException If command is empty, not whitelisted, or contains dangerous characters
      */
     protected function validateCommand(string $command): string
@@ -110,8 +112,9 @@ class LocalCommandJob extends BaseLLMJob
      * sensitive system directories. Prevents directory traversal attacks and
      * unauthorized access to system files.
      *
-     * @param  string  $directory The directory path to validate
+     * @param  string  $directory  The directory path to validate
      * @return string The canonical path to the validated directory
+     *
      * @throws \InvalidArgumentException If directory doesn't exist or is a system directory
      */
     protected function validateWorkingDirectory(string $directory): string
@@ -142,8 +145,9 @@ class LocalCommandJob extends BaseLLMJob
      * Falls back to the user's default shell if none specified. Uses realpath
      * to prevent symbolic link attacks.
      *
-     * @param  string|null  $shell The shell path to validate, or null for default
+     * @param  string|null  $shell  The shell path to validate, or null for default
      * @return string The validated shell path
+     *
      * @throws \InvalidArgumentException If shell doesn't exist or is not in whitelist
      */
     protected function validateShell(?string $shell): string
@@ -175,6 +179,7 @@ class LocalCommandJob extends BaseLLMJob
      * Inherits critical environment variables including ANTHROPIC_API_KEY, PATH, and asdf.
      *
      * @return string The command's standard output
+     *
      * @throws \Exception If command execution fails or home directory cannot be determined
      */
     protected function execute(): string
@@ -271,8 +276,9 @@ class LocalCommandJob extends BaseLLMJob
      * Handles common failure scenarios like missing commands, permission denied,
      * interruptions, and timeouts. Always throws an exception.
      *
-     * @param  mixed  $result The process result object
+     * @param  mixed  $result  The process result object
      * @return never Always throws an exception
+     *
      * @throws InvalidRequestException For invalid commands or permission issues
      * @throws TimeoutException For signal-based terminations
      * @throws ApiException For general failures
@@ -366,6 +372,7 @@ class LocalCommandJob extends BaseLLMJob
      * All arguments are properly escaped using escapeshellarg() to prevent injection attacks.
      *
      * @return string The fully constructed and escaped command ready for execution
+     *
      * @throws \InvalidArgumentException If model name contains shell metacharacters
      */
     protected function buildCommand(): string
@@ -401,8 +408,9 @@ class LocalCommandJob extends BaseLLMJob
      * While escapeshellarg() provides the primary defense against injection, sanitization here
      * provides defense-in-depth by removing null bytes and preventing extremely large payloads.
      *
-     * @param  string  $prompt The raw user prompt to sanitize
+     * @param  string  $prompt  The raw user prompt to sanitize
      * @return string The sanitized prompt safe for shell execution
+     *
      * @throws \InvalidArgumentException If prompt exceeds maximum length of 100,000 characters
      */
     protected function sanitizePrompt(string $prompt): string

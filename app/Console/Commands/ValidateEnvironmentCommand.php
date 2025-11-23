@@ -13,8 +13,7 @@ class ValidateEnvironmentCommand extends Command
      * @var string
      */
     protected $signature = 'env:validate
-                            {--strict : Exit with code 1 if any warnings are found}
-                            {--quiet : Suppress output and only return exit code}';
+                            {--strict : Exit with code 1 if any warnings are found}';
 
     /**
      * The console command description.
@@ -28,29 +27,23 @@ class ValidateEnvironmentCommand extends Command
      */
     public function handle(): int
     {
-        if (!$this->option('quiet')) {
-            $this->newLine();
-            $this->info('Validating environment configuration...');
-            $this->newLine();
-        }
+        $this->newLine();
+        $this->info('Validating environment configuration...');
+        $this->newLine();
 
-        $validator = new EnvironmentValidator();
+        $validator = new EnvironmentValidator;
         $failFast = false; // Don't throw exceptions in this command, handle them gracefully
 
         try {
             $validator->validate(failFast: $failFast);
         } catch (\Exception $e) {
-            if (!$this->option('quiet')) {
-                $this->error('Validation failed with exception: ' . $e->getMessage());
-            }
+            $this->error('Validation failed with exception: '.$e->getMessage());
+
             return 1;
         }
 
         $summary = $validator->getSummary();
-
-        if (!$this->option('quiet')) {
-            $this->displayValidationResults($summary);
-        }
+        $this->displayValidationResults($summary);
 
         // Determine exit code
         if ($summary['error_count'] > 0) {
@@ -67,8 +60,7 @@ class ValidateEnvironmentCommand extends Command
     /**
      * Display validation results in a user-friendly format.
      *
-     * @param array $summary Validation summary from EnvironmentValidator
-     * @return void
+     * @param  array  $summary  Validation summary from EnvironmentValidator
      */
     protected function displayValidationResults(array $summary): void
     {

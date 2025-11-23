@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ConversationApiController;
 use App\Http\Controllers\Api\LLMQueryApiController;
 use App\Http\Controllers\Api\ProviderHealthController;
+use App\Http\Controllers\ConversationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -184,7 +185,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
      * @apiSuccess {String[]} models Array of available model names
      * @apiSuccess {Boolean} cached Whether the result was cached
      */
-    Route::get('/lmstudio/models', [ConversationApiController::class, 'getLMStudioModels']);
+    Route::get('/lmstudio/models', [ConversationController::class, 'getLMStudioModels']);
 
     /**
      * @api {get} /api/ollama/models Get Available Ollama Models
@@ -201,7 +202,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
      * @apiSuccess {String[]} models Array of available model names
      * @apiSuccess {Boolean} cached Whether the result was cached
      */
-    Route::get('/ollama/models', [ConversationApiController::class, 'getOllamaModels']);
+    Route::get('/ollama/models', [ConversationController::class, 'getOllamaModels']);
 
     /**
      * @api {post} /api/providers/health/clear-cache Clear Provider Health Cache

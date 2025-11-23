@@ -86,9 +86,9 @@ class CostCalculator
      * @param  string  $provider  The LLM provider (e.g., 'claude', 'ollama')
      * @param  string|null  $model  The specific model used
      * @param  array  $usageStats  Token usage statistics containing:
-     *                              - input_tokens (int): Number of input tokens
-     *                              - output_tokens (int): Number of output tokens
-     *                              - total_tokens (int): Total tokens (optional)
+     *                             - input_tokens (int): Number of input tokens
+     *                             - output_tokens (int): Number of output tokens
+     *                             - total_tokens (int): Total tokens (optional)
      * @return array Cost breakdown containing:
      *               - input_cost_usd (float): Cost for input tokens
      *               - output_cost_usd (float): Cost for output tokens
