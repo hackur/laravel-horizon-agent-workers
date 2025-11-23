@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class ConversationSeeder extends Seeder
@@ -13,8 +13,9 @@ class ConversationSeeder extends Seeder
     {
         $admin = User::where('email', 'admin@example.com')->first();
 
-        if (!$admin) {
+        if (! $admin) {
             $this->command->warn('Admin user not found. Run UserSeeder first.');
+
             return;
         }
 

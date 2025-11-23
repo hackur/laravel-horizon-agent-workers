@@ -2,8 +2,8 @@
 
 namespace App\Jobs\LLM\Claude;
 
-use App\Jobs\LLM\BaseLLMJob;
 use Anthropic\Laravel\Facades\Anthropic;
+use App\Jobs\LLM\BaseLLMJob;
 
 class ClaudeQueryJob extends BaseLLMJob
 {

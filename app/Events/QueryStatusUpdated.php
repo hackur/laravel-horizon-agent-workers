@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\LLMQuery;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -15,12 +14,19 @@ class QueryStatusUpdated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $queryId;
+
     public string $status;
+
     public ?string $response;
+
     public ?string $reasoning_content;
+
     public ?array $usage_stats;
+
     public ?string $error;
+
     public ?int $duration_ms;
+
     public ?string $finish_reason;
 
     /**
@@ -46,7 +52,7 @@ class QueryStatusUpdated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('queries.' . $this->queryId),
+            new PrivateChannel('queries.'.$this->queryId),
         ];
     }
 

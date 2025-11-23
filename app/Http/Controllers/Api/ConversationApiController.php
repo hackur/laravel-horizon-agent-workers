@@ -1,7 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ConversationCollection;
+use App\Http\Resources\ConversationResource;
+use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Services\ConversationService;
 use App\Services\LLMQueryDispatcher;
@@ -9,7 +13,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-class ConversationController extends Controller
+/**
+ * Conversation API Controller
+ *
+ * Handles all API operations for conversations including listing,
+ * creating, viewing, and adding messages to conversations.
+ */
+class ConversationApiController extends Controller
 {
     public function __construct(
         protected ConversationService $conversationService,
@@ -18,11 +28,14 @@ class ConversationController extends Controller
 
     /**
      * Display a listing of the user's conversations.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
         $query = Conversation::query()
-            ->where('user_id', auth()->id())
+            ->where('user_id', $request->user()->id)
             ->with(['messages' => fn ($q) => $q->latest()->limit(1)])
             ->withCount('messages');
 
@@ -36,26 +49,17 @@ class ConversationController extends Controller
             $query->where('title', 'like', '%'.$request->search.'%');
         }
 
-        $conversations = $query->latest('last_message_at')->paginate(15);
+        $conversations = $query->latest('last_message_at')
+            ->paginate($request->per_page ?? 15);
 
-        return view('conversations.index', [
-            'conversations' => $conversations,
-            'providers' => $this->dispatcher->getProviders(),
-        ]);
-    }
-
-    /**
-     * Show the form for creating a new conversation.
-     */
-    public function create()
-    {
-        return view('conversations.create', [
-            'providers' => $this->dispatcher->getProviders(),
-        ]);
+        return response()->json(new ConversationCollection($conversations));
     }
 
     /**
      * Store a newly created conversation.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
@@ -67,8 +71,8 @@ class ConversationController extends Controller
         ]);
 
         $conversation = Conversation::create([
-            'user_id' => auth()->id(),
-            'team_id' => auth()->user()->currentTeam?->id,
+            'user_id' => $request->user()->id,
+            'team_id' => $request->user()->currentTeam?->id,
             'title' => $validated['title'],
             'provider' => $validated['provider'],
             'model' => $validated['model'] ?? null,
@@ -88,7 +92,7 @@ class ConversationController extends Controller
             $validated['prompt'],
             $validated['model'] ?? null,
             [
-                'user_id' => auth()->id(),
+                'user_id' => $request->user()->id,
                 'conversation_id' => $conversation->id,
             ]
         );
@@ -96,19 +100,28 @@ class ConversationController extends Controller
         // Link query to conversation
         $query->update(['conversation_id' => $conversation->id]);
 
-        return redirect()
-            ->route('conversations.show', $conversation)
-            ->with('success', 'Conversation created and query dispatched!');
+        return response()->json([
+            'message' => 'Conversation created successfully',
+            'data' => new ConversationResource($conversation->load(['messages', 'queries'])),
+        ], 201);
     }
 
     /**
      * Display the specified conversation.
+     *
+     * @param Conversation $conversation
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function show(Conversation $conversation)
+    public function show(Request $request, Conversation $conversation)
     {
-        // Ensure user can only view their own conversations
-        if ($conversation->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access to conversation');
+        // Authorize access
+        if ($conversation->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Unauthorized access to conversation',
+                'errors' => [
+                    'conversation' => ['You do not have permission to view this conversation.'],
+                ],
+            ], 403);
         }
 
         $conversation->load([
@@ -116,20 +129,87 @@ class ConversationController extends Controller
             'queries' => fn ($q) => $q->latest(),
         ]);
 
-        return view('conversations.show', [
-            'conversation' => $conversation,
-            'providers' => $this->dispatcher->getProviders(),
+        return response()->json([
+            'data' => new ConversationResource($conversation),
+        ]);
+    }
+
+    /**
+     * Update the specified conversation.
+     *
+     * @param Request $request
+     * @param Conversation $conversation
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request, Conversation $conversation)
+    {
+        // Authorize access
+        if ($conversation->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Unauthorized access to conversation',
+                'errors' => [
+                    'conversation' => ['You do not have permission to update this conversation.'],
+                ],
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+
+        $conversation->update([
+            'title' => $validated['title'],
+        ]);
+
+        return response()->json([
+            'message' => 'Conversation updated successfully',
+            'data' => new ConversationResource($conversation),
+        ]);
+    }
+
+    /**
+     * Remove the specified conversation.
+     *
+     * @param Conversation $conversation
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroy(Request $request, Conversation $conversation)
+    {
+        // Authorize access
+        if ($conversation->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Unauthorized access to conversation',
+                'errors' => [
+                    'conversation' => ['You do not have permission to delete this conversation.'],
+                ],
+            ], 403);
+        }
+
+        $title = $conversation->title;
+        $conversation->delete();
+
+        return response()->json([
+            'message' => "Conversation \"{$title}\" deleted successfully",
         ]);
     }
 
     /**
      * Add a new message to an existing conversation.
+     *
+     * @param Request $request
+     * @param Conversation $conversation
+     * @return \Illuminate\Http\JsonResponse
      */
     public function addMessage(Request $request, Conversation $conversation)
     {
-        // Ensure user can only add to their own conversations
-        if ($conversation->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access to conversation');
+        // Authorize access
+        if ($conversation->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Unauthorized access to conversation',
+                'errors' => [
+                    'conversation' => ['You do not have permission to add messages to this conversation.'],
+                ],
+            ], 403);
         }
 
         $validated = $request->validate([
@@ -137,7 +217,7 @@ class ConversationController extends Controller
         ]);
 
         // Add the user's message
-        $this->conversationService->addMessage(
+        $message = $this->conversationService->addMessage(
             $conversation,
             'user',
             $validated['prompt']
@@ -152,7 +232,7 @@ class ConversationController extends Controller
             $validated['prompt'],
             $conversation->model,
             [
-                'user_id' => auth()->id(),
+                'user_id' => $request->user()->id,
                 'conversation_id' => $conversation->id,
                 'conversation_context' => $context,
             ]
@@ -164,13 +244,16 @@ class ConversationController extends Controller
         // Update last message timestamp
         $conversation->update(['last_message_at' => now()]);
 
-        return redirect()
-            ->route('conversations.show', $conversation)
-            ->with('success', 'Message added and query dispatched!');
+        return response()->json([
+            'message' => 'Message added and query dispatched successfully',
+            'data' => new MessageResource($message),
+        ], 201);
     }
 
     /**
      * Fetch available models from LM Studio (with caching).
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getLMStudioModels()
     {
@@ -209,48 +292,5 @@ class ConversationController extends Controller
                 'models' => [],
             ], 500);
         }
-    }
-
-    /**
-     * Update a conversation.
-     */
-    public function update(Request $request, Conversation $conversation)
-    {
-        // Ensure user can only update their own conversations
-        if ($conversation->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access to conversation');
-        }
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-        ]);
-
-        $conversation->update([
-            'title' => $validated['title'],
-        ]);
-
-        return redirect()
-            ->route('conversations.show', $conversation)
-            ->with('success', 'Conversation title updated successfully.');
-    }
-
-    /**
-     * Delete a conversation.
-     */
-    public function destroy(Conversation $conversation)
-    {
-        // Ensure user can only delete their own conversations
-        if ($conversation->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access to conversation');
-        }
-
-        $title = $conversation->title;
-
-        // Delete the conversation (cascade will handle messages and queries)
-        $conversation->delete();
-
-        return redirect()
-            ->route('conversations.index')
-            ->with('success', "Conversation \"{$title}\" deleted successfully.");
     }
 }

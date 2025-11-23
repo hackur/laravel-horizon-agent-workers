@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\LLMQuery;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class LLMQuerySeeder extends Seeder
@@ -12,8 +12,9 @@ class LLMQuerySeeder extends Seeder
     {
         $admin = User::where('email', 'admin@example.com')->first();
 
-        if (!$admin) {
+        if (! $admin) {
             $this->command->warn('Admin user not found. Run UserSeeder first.');
+
             return;
         }
 

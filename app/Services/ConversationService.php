@@ -57,7 +57,7 @@ class ConversationService
     public function getOrCreateConversation(int $userId, string $provider, ?string $model = null, ?string $title = null): Conversation
     {
         // If no title provided, use a timestamp-based default
-        $title = $title ?? 'Conversation ' . now()->format('Y-m-d H:i:s');
+        $title = $title ?? 'Conversation '.now()->format('Y-m-d H:i:s');
 
         return Conversation::create([
             'user_id' => $userId,
@@ -74,13 +74,13 @@ class ConversationService
      */
     public function addQueryResponse(LLMQuery $query): ?ConversationMessage
     {
-        if (!$query->conversation_id || !$query->response) {
+        if (! $query->conversation_id || ! $query->response) {
             return null;
         }
 
         $conversation = Conversation::find($query->conversation_id);
 
-        if (!$conversation) {
+        if (! $conversation) {
             return null;
         }
 
@@ -101,7 +101,7 @@ class ConversationService
             'failed_queries' => $queries->where('status', 'failed')->count(),
             'total_duration_ms' => $queries->where('status', 'completed')->sum('duration_ms'),
             'total_tokens' => $queries->where('status', 'completed')->sum(function ($query) {
-                return ($query->usage_stats['total_tokens'] ?? 0);
+                return $query->usage_stats['total_tokens'] ?? 0;
             }),
         ];
     }

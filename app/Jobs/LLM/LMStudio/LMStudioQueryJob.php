@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 class LMStudioQueryJob extends BaseLLMJob
 {
     public $queue = 'llm-local';
+
     public $timeout = 900; // 15 minutes for reasoning models
 
     protected ?array $additionalMetadata = null;
@@ -19,7 +20,7 @@ class LMStudioQueryJob extends BaseLLMJob
     {
         $baseUrl = $this->options['base_url'] ?? 'http://127.0.0.1:1234/v1';
         $model = $this->model ?? 'local-model';
-        $maxTokens = $this->options['max_tokens'] ?? (1024*10);
+        $maxTokens = $this->options['max_tokens'] ?? (1024 * 10);
         $temperature = $this->options['temperature'] ?? 0.7;
 
         // Use a longer timeout for reasoning models (e.g., Magistral)
@@ -39,7 +40,7 @@ class LMStudioQueryJob extends BaseLLMJob
             ]);
 
         if ($response->failed()) {
-            throw new \Exception("LM Studio API request failed: " . $response->body());
+            throw new \Exception('LM Studio API request failed: '.$response->body());
         }
 
         $data = $response->json();

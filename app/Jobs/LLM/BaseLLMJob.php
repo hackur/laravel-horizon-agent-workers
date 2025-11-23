@@ -18,12 +18,17 @@ abstract class BaseLLMJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
+
     public $timeout = 300;
+
     public $backoff = [30, 60, 120];
 
     protected string $prompt;
+
     protected ?string $model;
+
     protected ?int $llmQueryId;
+
     protected array $options;
 
     /**

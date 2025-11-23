@@ -39,9 +39,10 @@ class LLMQueryCommand extends Command
 
         // Validate provider
         $providers = $dispatcher->getProviders();
-        if (!isset($providers[$provider])) {
+        if (! isset($providers[$provider])) {
             $this->error("Invalid provider: {$provider}");
-            $this->info("Available providers: " . implode(', ', array_keys($providers)));
+            $this->info('Available providers: '.implode(', ', array_keys($providers)));
+
             return 1;
         }
 
@@ -63,7 +64,7 @@ class LLMQueryCommand extends Command
 
             $query = $dispatcher->dispatch($provider, $prompt, $model, $options);
 
-            $this->info("Query dispatched successfully!");
+            $this->info('Query dispatched successfully!');
             $this->table(
                 ['ID', 'Provider', 'Model', 'Status', 'Queue'],
                 [
@@ -73,18 +74,19 @@ class LLMQueryCommand extends Command
                         $query->model ?? 'default',
                         $query->status,
                         $providers[$provider]['queue'],
-                    ]
+                    ],
                 ]
             );
 
             $this->info("\nMonitor the query:");
-            $this->line("  - View in Horizon: http://localhost:8000/horizon");
-            $this->line("  - Check status: php artisan tinker");
+            $this->line('  - View in Horizon: http://localhost:8000/horizon');
+            $this->line('  - Check status: php artisan tinker');
             $this->line("    > App\\Models\\LLMQuery::find({$query->id})");
 
             return 0;
         } catch (\Exception $e) {
-            $this->error("Failed to dispatch query: " . $e->getMessage());
+            $this->error('Failed to dispatch query: '.$e->getMessage());
+
             return 1;
         }
     }

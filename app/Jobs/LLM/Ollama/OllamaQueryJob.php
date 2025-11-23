@@ -8,6 +8,7 @@ use CloudStudio\Ollama\Facades\Ollama;
 class OllamaQueryJob extends BaseLLMJob
 {
     public $queue = 'llm-ollama';
+
     public $timeout = 600; // Ollama can be slower locally
 
     /**

@@ -19,8 +19,8 @@ class LLMQueryController extends Controller
     {
         $queries = LLMQuery::query()
             ->where('user_id', auth()->id())
-            ->when($request->provider, fn($q, $provider) => $q->byProvider($provider))
-            ->when($request->status, fn($q, $status) => $q->where('status', $status))
+            ->when($request->provider, fn ($q, $provider) => $q->byProvider($provider))
+            ->when($request->status, fn ($q, $status) => $q->where('status', $status))
             ->latest()
             ->paginate(20);
 
@@ -77,6 +77,11 @@ class LLMQueryController extends Controller
      */
     public function show(LLMQuery $llmQuery)
     {
+        // Ensure user can only view their own queries
+        if ($llmQuery->user_id && $llmQuery->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to query');
+        }
+
         return view('llm-queries.show', [
             'query' => $llmQuery,
         ]);
@@ -112,6 +117,11 @@ class LLMQueryController extends Controller
      */
     public function apiShow(LLMQuery $llmQuery)
     {
+        // Ensure user can only view their own queries
+        if ($llmQuery->user_id && $llmQuery->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to query');
+        }
+
         return response()->json($llmQuery);
     }
 
@@ -120,9 +130,11 @@ class LLMQueryController extends Controller
      */
     public function apiIndex(Request $request)
     {
+        // Only show user's own queries
         $queries = LLMQuery::query()
-            ->when($request->provider, fn($q, $provider) => $q->byProvider($provider))
-            ->when($request->status, fn($q, $status) => $q->where('status', $status))
+            ->where('user_id', auth()->id())
+            ->when($request->provider, fn ($q, $provider) => $q->byProvider($provider))
+            ->when($request->status, fn ($q, $status) => $q->where('status', $status))
             ->latest()
             ->paginate($request->per_page ?? 20);
 

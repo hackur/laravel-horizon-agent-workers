@@ -4,7 +4,6 @@ namespace App\Events;
 
 use App\Models\ConversationMessage;
 use App\Models\LLMQuery;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -16,7 +15,9 @@ class MessageReceived implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $conversationId;
+
     public array $message;
+
     public array $queryStatus;
 
     /**
@@ -49,7 +50,7 @@ class MessageReceived implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('conversations.' . $this->conversationId),
+            new PrivateChannel('conversations.'.$this->conversationId),
         ];
     }
 

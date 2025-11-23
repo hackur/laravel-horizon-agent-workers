@@ -30,8 +30,11 @@ Route::middleware([
         ->only(['index', 'create', 'store', 'show']);
 });
 
-// API Routes for LLM Queries
-Route::prefix('api')->group(function () {
+// API Routes for LLM Queries - Protected with authentication
+Route::prefix('api')->middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+])->group(function () {
     Route::post('/llm/query', [LLMQueryController::class, 'apiStore'])->name('api.llm-queries.store');
     Route::get('/llm/query/{llmQuery}', [LLMQueryController::class, 'apiShow'])->name('api.llm-queries.show');
     Route::get('/llm/queries', [LLMQueryController::class, 'apiIndex'])->name('api.llm-queries.index');

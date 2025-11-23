@@ -10,10 +10,12 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 
 Broadcast::channel('queries.{id}', function ($user, $id) {
     $query = LLMQuery::find($id);
+
     return $query && (int) $query->user_id === (int) $user->id;
 });
 
 Broadcast::channel('conversations.{id}', function ($user, $id) {
     $conversation = Conversation::find($id);
+
     return $conversation && (int) $conversation->user_id === (int) $user->id;
 });
