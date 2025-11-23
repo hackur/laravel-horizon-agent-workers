@@ -1,12 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Import highlight.js theme */
 @import 'highlight.js/styles/github-dark.css';
 
 /* Import conversation styles */
 @import './conversation.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 [x-cloak] {
     display: none;

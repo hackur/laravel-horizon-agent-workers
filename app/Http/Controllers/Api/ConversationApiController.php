@@ -29,7 +29,6 @@ class ConversationApiController extends Controller
     /**
      * Display a listing of the user's conversations.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
@@ -58,7 +57,6 @@ class ConversationApiController extends Controller
     /**
      * Store a newly created conversation.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
@@ -109,7 +107,6 @@ class ConversationApiController extends Controller
     /**
      * Display the specified conversation.
      *
-     * @param Conversation $conversation
      * @return \Illuminate\Http\JsonResponse
      */
     public function show(Request $request, Conversation $conversation)
@@ -137,8 +134,6 @@ class ConversationApiController extends Controller
     /**
      * Update the specified conversation.
      *
-     * @param Request $request
-     * @param Conversation $conversation
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, Conversation $conversation)
@@ -170,7 +165,6 @@ class ConversationApiController extends Controller
     /**
      * Remove the specified conversation.
      *
-     * @param Conversation $conversation
      * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(Request $request, Conversation $conversation)
@@ -196,8 +190,6 @@ class ConversationApiController extends Controller
     /**
      * Add a new message to an existing conversation.
      *
-     * @param Request $request
-     * @param Conversation $conversation
      * @return \Illuminate\Http\JsonResponse
      */
     public function addMessage(Request $request, Conversation $conversation)
@@ -289,6 +281,50 @@ class ConversationApiController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'LM Studio is not running or not accessible: '.$e->getMessage(),
+                'models' => [],
+            ], 500);
+        }
+    }
+
+    /**
+     * Fetch available models from Ollama (with caching).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getOllamaModels()
+    {
+        try {
+            // Cache for 5 minutes to reduce API calls
+            $models = Cache::remember('ollama.models', 300, function () {
+                $baseUrl = env('OLLAMA_BASE_URL', 'http://127.0.0.1:11434');
+
+                $response = Http::timeout(5)
+                    ->get("{$baseUrl}/api/tags");
+
+                if ($response->successful()) {
+                    $data = $response->json();
+
+                    return collect($data['models'] ?? [])
+                        ->pluck('name')
+                        ->values()
+                        ->toArray();
+                }
+
+                throw new \Exception('Failed to fetch models from Ollama');
+            });
+
+            return response()->json([
+                'success' => true,
+                'models' => $models,
+                'cached' => true,
+            ]);
+        } catch (\Exception $e) {
+            // Clear cache on error so next request will retry
+            Cache::forget('ollama.models');
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Ollama is not running or not accessible: '.$e->getMessage(),
                 'models' => [],
             ], 500);
         }

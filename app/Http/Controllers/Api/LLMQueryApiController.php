@@ -24,7 +24,6 @@ class LLMQueryApiController extends Controller
     /**
      * Display a listing of LLM queries.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
@@ -42,7 +41,6 @@ class LLMQueryApiController extends Controller
     /**
      * Store a newly created query and dispatch to queue.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
@@ -78,8 +76,6 @@ class LLMQueryApiController extends Controller
     /**
      * Display the specified query.
      *
-     * @param Request $request
-     * @param LLMQuery $llmQuery
      * @return \Illuminate\Http\JsonResponse
      */
     public function show(Request $request, LLMQuery $llmQuery)

@@ -35,4 +35,22 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | LLM Provider Services
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for LLM provider integrations including Ollama and LM Studio.
+    | These settings control connection endpoints for local and remote LLM services.
+    |
+    */
+
+    'ollama' => [
+        'base_url' => env('OLLAMA_BASE_URL', 'http://127.0.0.1:11434'),
+    ],
+
+    'lmstudio' => [
+        'base_url' => env('LMSTUDIO_BASE_URL', 'http://127.0.0.1:1234/v1'),
+    ],
+
 ];

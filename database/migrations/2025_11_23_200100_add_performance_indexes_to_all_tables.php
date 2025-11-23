@@ -149,13 +149,13 @@ return new class extends Migration
                 // Note: email is typically already unique indexed
                 // Index on created_at for user registration analytics
                 if (Schema::hasColumn('users', 'created_at') &&
-                    !$this->indexExists('users', ['created_at'])) {
+                    ! $this->indexExists('users', ['created_at'])) {
                     $table->index('created_at');
                 }
 
                 // Index on updated_at for recently active users
                 if (Schema::hasColumn('users', 'updated_at') &&
-                    !$this->indexExists('users', ['updated_at'])) {
+                    ! $this->indexExists('users', ['updated_at'])) {
                     $table->index('updated_at');
                 }
             });

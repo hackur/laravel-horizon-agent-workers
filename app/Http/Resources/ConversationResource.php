@@ -37,8 +37,8 @@ class ConversationResource extends JsonResource
 
             // API navigation links
             'links' => [
-                'self' => route('api.conversations.show', $this->id),
-                'messages' => route('api.conversations.messages.store', $this->id),
+                'self' => url("/api/conversations/{$this->id}"),
+                'messages' => url("/api/conversations/{$this->id}/messages"),
             ],
         ];
     }

@@ -30,6 +30,49 @@
                         {{ $conversation->model }}
                     </span>
                 @endif
+
+                <!-- Export Dropdown -->
+                <div class="relative inline-block text-left" x-data="{ open: false }">
+                    <button @click="open = !open" @click.away="open = false"
+                            type="button"
+                            class="inline-flex items-center text-xs px-3 py-1 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Export
+                        <svg class="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+
+                    <div x-show="open"
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                         style="display: none;">
+                        <div class="py-1">
+                            <a href="{{ route('conversations.export.json', $conversation) }}"
+                               class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                Export as JSON
+                            </a>
+                            <a href="{{ route('conversations.export.markdown', $conversation) }}"
+                               class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Export as Markdown
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <form method="POST" action="{{ route('conversations.destroy', $conversation) }}"
                       onsubmit="return confirm('Are you sure you want to delete this conversation? This action cannot be undone.');">
                     @csrf
@@ -48,6 +91,68 @@
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                     {{ session('success') }}
+                </div>
+            @endif
+
+            <!-- Conversation Statistics Panel -->
+            @if(isset($statistics) && $statistics['total_queries'] > 0)
+                <div class="bg-white shadow-sm sm:rounded-lg mb-6">
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Conversation Statistics
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide">Total Queries</div>
+                                <div class="text-2xl font-semibold text-gray-900 mt-1">{{ number_format($statistics['total_queries']) }}</div>
+                            </div>
+                            @if($statistics['total_tokens'] > 0)
+                                <div class="bg-purple-50 rounded-lg p-4">
+                                    <div class="text-xs text-purple-600 uppercase tracking-wide">Total Tokens</div>
+                                    <div class="text-2xl font-semibold text-purple-900 mt-1">{{ number_format($statistics['total_tokens']) }}</div>
+                                    <div class="text-xs text-purple-600 mt-1">
+                                        In: {{ number_format($statistics['input_tokens']) }} / Out: {{ number_format($statistics['output_tokens']) }}
+                                    </div>
+                                </div>
+                            @endif
+                            @if($statistics['total_cost_usd'] > 0)
+                                <div class="bg-green-50 rounded-lg p-4">
+                                    <div class="text-xs text-green-600 uppercase tracking-wide">Total Cost</div>
+                                    <div class="text-2xl font-semibold text-green-900 mt-1">${{ number_format($statistics['total_cost_usd'], 4) }}</div>
+                                    @if($statistics['avg_cost_usd'] > 0)
+                                        <div class="text-xs text-green-600 mt-1">
+                                            Avg: ${{ number_format($statistics['avg_cost_usd'], 4) }}
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                            @if($statistics['avg_duration_ms'] > 0)
+                                <div class="bg-blue-50 rounded-lg p-4">
+                                    <div class="text-xs text-blue-600 uppercase tracking-wide">Avg Response Time</div>
+                                    <div class="text-2xl font-semibold text-blue-900 mt-1">{{ number_format($statistics['avg_duration_ms'] / 1000, 2) }}s</div>
+                                </div>
+                            @endif
+                        </div>
+                        @if($statistics['over_budget_count'] > 0)
+                            <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-3">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-xs text-yellow-700">
+                                            {{ $statistics['over_budget_count'] }} {{ $statistics['over_budget_count'] === 1 ? 'query' : 'queries' }} exceeded the budget limit.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             @endif
 
@@ -94,7 +199,7 @@
                                         <div class="flex items-center justify-between text-xs">
                                             <!-- Usage Stats -->
                                             @if($message->llmQuery->usage_stats)
-                                                <div class="flex space-x-3">
+                                                <div class="flex flex-wrap gap-2">
                                                     @if(isset($message->llmQuery->usage_stats['total_tokens']))
                                                         <span class="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 rounded">
                                                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,6 +214,23 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                             </svg>
                                                             {{ round($message->llmQuery->duration_ms / 1000, 2) }}s
+                                                        </span>
+                                                    @endif
+                                                    @if($message->llmQuery->cost_usd)
+                                                        <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded">
+                                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                            </svg>
+                                                            ${{ number_format($message->llmQuery->cost_usd, 4) }}
+                                                        </span>
+                                                    @endif
+                                                    @if($message->llmQuery->pricing_tier)
+                                                        <span class="inline-flex items-center px-2 py-1
+                                                            {{ $message->llmQuery->pricing_tier === 'opus' ? 'bg-purple-50 text-purple-700' : '' }}
+                                                            {{ $message->llmQuery->pricing_tier === 'sonnet' ? 'bg-blue-50 text-blue-700' : '' }}
+                                                            {{ $message->llmQuery->pricing_tier === 'haiku' ? 'bg-teal-50 text-teal-700' : '' }}
+                                                            rounded">
+                                                            {{ ucfirst($message->llmQuery->pricing_tier) }}
                                                         </span>
                                                     @endif
                                                     @if($message->llmQuery->finish_reason)
@@ -202,371 +324,14 @@
         </div>
     </div>
 
-    @vite(['resources/js/app.js'])
-
-    <!-- Highlight.js for syntax highlighting -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/conversation-show.js'])
 
     <script type="module">
-        import { marked } from 'https://cdn.jsdelivr.net/npm/marked@16.3.0/+esm';
-        import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.7/+esm';
+        import { initConversationShow } from '/resources/js/conversation-show.js';
 
-        // Configure marked for better rendering
-        marked.setOptions({
-            breaks: true,
-            gfm: true,
-            headerIds: false,
-            mangle: false
+        // Initialize the conversation show page
+        document.addEventListener('DOMContentLoaded', () => {
+            initConversationShow({{ $conversation->id }});
         });
-
-        // Function to render markdown safely
-        function renderMarkdown(content) {
-            const rawHtml = marked.parse(content);
-            return DOMPurify.sanitize(rawHtml, {
-                ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-                ALLOWED_ATTR: ['href', 'class']
-            });
-        }
-
-        // Add copy buttons and syntax highlighting to code blocks
-        function addCopyButtons(container) {
-            container.querySelectorAll('pre code').forEach(codeBlock => {
-                const pre = codeBlock.parentElement;
-
-                // Apply syntax highlighting
-                if (window.hljs && !codeBlock.classList.contains('hljs')) {
-                    hljs.highlightElement(codeBlock);
-                }
-
-                // Don't add button if already exists
-                if (pre.querySelector('.copy-code-button')) return;
-
-                const button = document.createElement('button');
-                button.className = 'copy-code-button';
-                button.textContent = 'Copy';
-                button.addEventListener('click', async () => {
-                    try {
-                        await navigator.clipboard.writeText(codeBlock.textContent);
-                        button.textContent = 'Copied!';
-                        button.classList.add('copied');
-                        setTimeout(() => {
-                            button.textContent = 'Copy';
-                            button.classList.remove('copied');
-                        }, 2000);
-                    } catch (err) {
-                        console.error('Failed to copy:', err);
-                        button.textContent = 'Failed';
-                        setTimeout(() => {
-                            button.textContent = 'Copy';
-                        }, 2000);
-                    }
-                });
-                pre.appendChild(button);
-            });
-        }
-
-        // Render all existing markdown content on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.markdown-content').forEach(element => {
-                const rawContent = atob(element.dataset.rawContent);
-                element.innerHTML = renderMarkdown(rawContent);
-                addCopyButtons(element);
-            });
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const conversationId = {{ $conversation->id }};
-            const messagesContainer = document.getElementById('messages-container');
-            const liveIndicator = document.getElementById('live-indicator');
-            const submitButton = document.querySelector('button[type="submit"]');
-
-            // Show live indicator when Echo is ready
-            if (window.Echo) {
-                liveIndicator.classList.remove('hidden');
-
-                // Listen for new messages in this conversation
-                window.Echo.private(`conversations.${conversationId}`)
-                    .listen('.message.received', (event) => {
-                        console.log('New message received:', event);
-
-                        // Add the new assistant message to the UI
-                        const messageHtml = createMessageElement(event.message, event.query_status);
-                        messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
-
-                        // Scroll to the new message
-                        messagesContainer.lastElementChild.scrollIntoView({ behavior: 'smooth' });
-
-                        // Re-enable submit button if it was disabled
-                        if (submitButton) {
-                            submitButton.disabled = false;
-                            submitButton.textContent = 'Send Message';
-                        }
-
-                        // Show notification
-                        showNotification('New response received!', 'success');
-                    });
-
-                console.log(`Subscribed to conversation ${conversationId}`);
-            }
-
-            function createMessageElement(message, queryStatus) {
-                const timestamp = new Date(message.created_at).toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'flex justify-start animate-fade-in';
-                messageDiv.innerHTML = `
-                    <div class="max-w-3xl w-full mr-12">
-                        <div class="bg-gray-50 shadow-sm sm:rounded-lg p-6 border-2 border-green-200">
-                            <div class="flex items-start justify-between mb-3">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Assistant <span class="ml-1 text-xs">●</span>
-                                </span>
-                                <span class="text-xs text-gray-500">${timestamp}</span>
-                            </div>
-                            <div class="markdown-content"></div>
-                            ${queryStatus && queryStatus.duration_ms ? `
-                                <div class="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
-                                    Response time: ${(queryStatus.duration_ms / 1000).toFixed(2)}s
-                                    ${queryStatus.reasoning_content ? ' • Includes reasoning' : ''}
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-
-                // Render markdown for the new message
-                const markdownContainer = messageDiv.querySelector('.markdown-content');
-                markdownContainer.innerHTML = renderMarkdown(message.content);
-                addCopyButtons(markdownContainer);
-
-                return messageDiv.outerHTML;
-            }
-
-            function showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg ${
-                    type === 'success' ? 'bg-green-500' :
-                    type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-                } text-white z-50 animate-slide-in`;
-                notification.textContent = message;
-                document.body.appendChild(notification);
-
-                setTimeout(() => {
-                    notification.remove();
-                }, 3000);
-            }
-
-            // Add CSS for animations and markdown styling
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes fade-in {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes slide-in {
-                    from { transform: translateX(100%); }
-                    to { transform: translateX(0); }
-                }
-                .animate-fade-in {
-                    animation: fade-in 0.5s ease-out;
-                }
-                .animate-slide-in {
-                    animation: slide-in 0.3s ease-out;
-                }
-
-                /* Markdown Content Styling */
-                .markdown-content {
-                    color: #1f2937;
-                    font-size: 0.9375rem;
-                    line-height: 1.7;
-                }
-
-                .markdown-content p {
-                    margin-bottom: 1em;
-                }
-
-                .markdown-content p:last-child {
-                    margin-bottom: 0;
-                }
-
-                .markdown-content h1, .markdown-content h2, .markdown-content h3,
-                .markdown-content h4, .markdown-content h5, .markdown-content h6 {
-                    font-weight: 600;
-                    margin-top: 1.5em;
-                    margin-bottom: 0.75em;
-                    line-height: 1.3;
-                    color: #111827;
-                }
-
-                .markdown-content h1 { font-size: 1.75em; }
-                .markdown-content h2 { font-size: 1.5em; }
-                .markdown-content h3 { font-size: 1.25em; }
-                .markdown-content h4 { font-size: 1.125em; }
-
-                .markdown-content h1:first-child, .markdown-content h2:first-child,
-                .markdown-content h3:first-child, .markdown-content h4:first-child {
-                    margin-top: 0;
-                }
-
-                .markdown-content code {
-                    background-color: #f3f4f6;
-                    padding: 0.125rem 0.375rem;
-                    border-radius: 0.25rem;
-                    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-                    font-size: 0.875em;
-                    color: #be123c;
-                }
-
-                .markdown-content pre {
-                    background-color: #1f2937;
-                    color: #f3f4f6;
-                    padding: 1rem;
-                    border-radius: 0.5rem;
-                    overflow-x: auto;
-                    margin: 1em 0;
-                    position: relative;
-                }
-
-                .markdown-content pre code {
-                    background-color: transparent;
-                    padding: 0;
-                    color: #f3f4f6;
-                    font-size: 0.875rem;
-                }
-
-                .copy-code-button {
-                    position: absolute;
-                    top: 0.5rem;
-                    right: 0.5rem;
-                    padding: 0.25rem 0.5rem;
-                    background-color: #374151;
-                    color: #9ca3af;
-                    border: 1px solid #4b5563;
-                    border-radius: 0.375rem;
-                    font-size: 0.75rem;
-                    cursor: pointer;
-                    opacity: 0;
-                    transition: all 0.2s;
-                }
-
-                .markdown-content pre:hover .copy-code-button {
-                    opacity: 1;
-                }
-
-                .copy-code-button:hover {
-                    background-color: #4b5563;
-                    color: #f3f4f6;
-                }
-
-                .copy-code-button.copied {
-                    background-color: #059669;
-                    color: white;
-                    border-color: #059669;
-                }
-
-                .markdown-content ul, .markdown-content ol {
-                    margin: 1em 0;
-                    padding-left: 2em;
-                }
-
-                .markdown-content li {
-                    margin: 0.5em 0;
-                }
-
-                .markdown-content blockquote {
-                    border-left: 4px solid #e5e7eb;
-                    padding-left: 1rem;
-                    margin: 1em 0;
-                    color: #6b7280;
-                    font-style: italic;
-                }
-
-                .markdown-content a {
-                    color: #2563eb;
-                    text-decoration: underline;
-                }
-
-                .markdown-content a:hover {
-                    color: #1d4ed8;
-                }
-
-                .markdown-content table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 1em 0;
-                }
-
-                .markdown-content th, .markdown-content td {
-                    border: 1px solid #e5e7eb;
-                    padding: 0.5rem 0.75rem;
-                    text-align: left;
-                }
-
-                .markdown-content th {
-                    background-color: #f9fafb;
-                    font-weight: 600;
-                }
-
-                .markdown-content strong {
-                    font-weight: 600;
-                    color: #111827;
-                }
-
-                .markdown-content em {
-                    font-style: italic;
-                }
-            `;
-            document.head.appendChild(style);
-        });
-
-        // Title editing functionality
-        const titleDisplay = document.getElementById('titleDisplay');
-        const titleForm = document.getElementById('titleForm');
-        const titleInput = document.getElementById('titleInput');
-        const cancelEdit = document.getElementById('cancelEdit');
-
-        titleDisplay.addEventListener('click', () => {
-            titleDisplay.classList.add('hidden');
-            titleForm.classList.remove('hidden');
-            titleInput.focus();
-            titleInput.select();
-        });
-
-        cancelEdit.addEventListener('click', () => {
-            titleForm.classList.add('hidden');
-            titleDisplay.classList.remove('hidden');
-            titleInput.value = titleDisplay.querySelector('#titleText').textContent.trim();
-        });
-
-        // Allow Escape to cancel editing
-        titleInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                cancelEdit.click();
-            }
-        });
-
-        // Form submission loading state
-        const messageForm = document.getElementById('messageForm');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const buttonText = document.getElementById('buttonText');
-
-        if (messageForm) {
-            messageForm.addEventListener('submit', function() {
-                // Show loading state
-                sendButton.disabled = true;
-                messageInput.disabled = true;
-                loadingSpinner.classList.remove('hidden');
-                buttonText.textContent = 'Sending...';
-            });
-        }
     </script>
 </x-app-layout>

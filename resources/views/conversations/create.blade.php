@@ -99,64 +99,13 @@
         </div>
     </div>
 
-    <script>
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/conversation-create.js'])
+
+    <script type="module">
+        import { initConversationCreate } from '/resources/js/conversation-create.js';
+
+        // Initialize the conversation create page
         const providers = @json($providers);
-
-        // Form submission loading state
-        const form = document.querySelector('form');
-        const submitButton = document.getElementById('submitButton');
-        const submitSpinner = document.getElementById('submitSpinner');
-        const submitText = document.getElementById('submitText');
-
-        form.addEventListener('submit', function() {
-            submitButton.disabled = true;
-            submitSpinner.classList.remove('hidden');
-            submitText.textContent = 'Creating...';
-        });
-
-        async function updateModels(providerKey) {
-            const modelSelect = document.getElementById('model');
-            const modelSection = document.getElementById('modelSection');
-            const provider = providers[providerKey];
-
-            // For LM Studio, fetch models from API
-            if (providerKey === 'lmstudio') {
-                modelSelect.innerHTML = '<option value="">Loading models...</option>';
-                modelSection.classList.remove('hidden');
-
-                try {
-                    const response = await fetch('/api/lmstudio/models');
-                    const data = await response.json();
-
-                    if (data.success && data.models.length > 0) {
-                        modelSelect.innerHTML = '<option value="">Select a model</option>';
-                        data.models.forEach(model => {
-                            const option = document.createElement('option');
-                            option.value = model;
-                            option.textContent = model;
-                            modelSelect.appendChild(option);
-                        });
-                    } else {
-                        modelSelect.innerHTML = '<option value="">No models available (is LM Studio running?)</option>';
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch LM Studio models:', error);
-                    modelSelect.innerHTML = '<option value="">Failed to load models</option>';
-                }
-            }
-            // For other providers with static models
-            else if (provider && provider.models && provider.models.length > 0) {
-                modelSelect.innerHTML = '<option value="">Default model</option>';
-                provider.models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model;
-                    option.textContent = model;
-                    modelSelect.appendChild(option);
-                });
-                modelSection.classList.remove('hidden');
-            } else {
-                modelSection.classList.add('hidden');
-            }
-        }
+        initConversationCreate(providers);
     </script>
 </x-app-layout>

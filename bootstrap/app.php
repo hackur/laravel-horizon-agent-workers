@@ -93,7 +93,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (\Throwable $e, $request) {
-            if ($request->is('api/*') && !config('app.debug')) {
+            if ($request->is('api/*') && ! config('app.debug')) {
                 return response()->json([
                     'message' => 'Server error.',
                     'errors' => [

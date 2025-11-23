@@ -5,11 +5,24 @@ namespace App\Services;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\LLMQuery;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConversationService
 {
     /**
      * Add a message to a conversation.
+     *
+     * Creates a new conversation message with the specified role and content.
+     * Optionally links the message to an LLM query and captures relevant metadata
+     * including provider, model, duration, and finish reason. Updates the conversation's
+     * last message timestamp.
+     *
+     * @param  Conversation  $conversation  The conversation to add the message to
+     * @param  string  $role  The message role (typically 'user' or 'assistant')
+     * @param  string  $content  The message content/text
+     * @param  LLMQuery|null  $llmQuery  Optional LLM query associated with this message
+     * @return ConversationMessage The created message model
      */
     public function addMessage(Conversation $conversation, string $role, string $content, ?LLMQuery $llmQuery = null): ConversationMessage
     {
@@ -35,6 +48,14 @@ class ConversationService
 
     /**
      * Get conversation context for LLM (message history).
+     *
+     * Retrieves message history for a conversation in the format needed for LLM context.
+     * Messages are returned in chronological order with a configurable limit.
+     * Strips metadata and returns only role and content for LLM APIs.
+     *
+     * @param  Conversation  $conversation  The conversation to get context for
+     * @param  int  $messageLimit  Maximum number of messages to return (default 20)
+     * @return array Array of messages with 'role' and 'content' keys
      */
     public function getConversationContext(Conversation $conversation, int $messageLimit = 20): array
     {
@@ -53,6 +74,16 @@ class ConversationService
 
     /**
      * Auto-create or get existing conversation for a query.
+     *
+     * Creates a new conversation for a user with the specified LLM provider and optional model.
+     * If no title is provided, generates one using the current timestamp.
+     * Links the conversation to the user's current team if available.
+     *
+     * @param  int  $userId  The user ID to create the conversation for
+     * @param  string  $provider  The LLM provider (claude, ollama, lmstudio, local-command)
+     * @param  string|null  $model  Optional model name or ID
+     * @param  string|null  $title  Optional conversation title (auto-generated if not provided)
+     * @return Conversation The created or retrieved conversation model
      */
     public function getOrCreateConversation(int $userId, string $provider, ?string $model = null, ?string $title = null): Conversation
     {
@@ -71,6 +102,13 @@ class ConversationService
 
     /**
      * Link an LLM query response to the conversation as an assistant message.
+     *
+     * Takes a completed LLM query and creates an assistant message in the associated
+     * conversation with the query's response. Returns null if the query has no conversation
+     * or response. Automatically captures LLM query metadata in the message.
+     *
+     * @param  LLMQuery  $query  The completed LLM query with a response
+     * @return ConversationMessage|null The created message or null if query lacks conversation/response
      */
     public function addQueryResponse(LLMQuery $query): ?ConversationMessage
     {
@@ -88,21 +126,101 @@ class ConversationService
     }
 
     /**
-     * Get conversation statistics.
+     * Get conversation statistics - OPTIMIZED VERSION.
+     *
+     * Uses database aggregation instead of loading all queries into memory
+     * and filtering in PHP. This prevents N+1 queries and improves performance.
+     *
+     * @param  Conversation  $conversation  The conversation to get statistics for
+     * @return array Associative array containing:
+     *               - total_messages: int
+     *               - total_queries: int
+     *               - completed_queries: int
+     *               - failed_queries: int
+     *               - pending_queries: int
+     *               - processing_queries: int
+     *               - total_duration_ms: int
+     *               - avg_duration_ms: float
+     *               - total_tokens: int
+     *               - input_tokens: int
+     *               - output_tokens: int
      */
     public function getStatistics(Conversation $conversation): array
     {
-        $queries = $conversation->queries;
+        // Use single aggregation query instead of loading all queries
+        $queryStats = DB::table('l_l_m_queries')
+            ->select([
+                DB::raw('COUNT(*) as total_queries'),
+                DB::raw('SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed_queries'),
+                DB::raw('SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed_queries'),
+                DB::raw('SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending_queries'),
+                DB::raw('SUM(CASE WHEN status = "processing" THEN 1 ELSE 0 END) as processing_queries'),
+                DB::raw('SUM(CASE WHEN status = "completed" THEN duration_ms ELSE 0 END) as total_duration_ms'),
+                DB::raw('AVG(CASE WHEN status = "completed" THEN duration_ms ELSE NULL END) as avg_duration_ms'),
+            ])
+            ->where('conversation_id', $conversation->id)
+            ->first();
+
+        // Get total tokens from JSON field (SQLite compatible)
+        $tokenStats = DB::table('l_l_m_queries')
+            ->select([
+                DB::raw('SUM(
+                    CASE
+                        WHEN status = "completed" AND usage_stats IS NOT NULL
+                        THEN CAST(json_extract(usage_stats, "$.total_tokens") AS INTEGER)
+                        ELSE 0
+                    END
+                ) as total_tokens'),
+                DB::raw('SUM(
+                    CASE
+                        WHEN status = "completed" AND usage_stats IS NOT NULL
+                        THEN CAST(json_extract(usage_stats, "$.input_tokens") AS INTEGER)
+                        ELSE 0
+                    END
+                ) as input_tokens'),
+                DB::raw('SUM(
+                    CASE
+                        WHEN status = "completed" AND usage_stats IS NOT NULL
+                        THEN CAST(json_extract(usage_stats, "$.output_tokens") AS INTEGER)
+                        ELSE 0
+                    END
+                ) as output_tokens'),
+            ])
+            ->where('conversation_id', $conversation->id)
+            ->where('status', 'completed')
+            ->first();
+
+        // Get cost statistics
+        $costStats = DB::table('l_l_m_queries')
+            ->select([
+                DB::raw('SUM(CASE WHEN status = "completed" THEN cost_usd ELSE 0 END) as total_cost_usd'),
+                DB::raw('SUM(CASE WHEN status = "completed" THEN input_cost_usd ELSE 0 END) as total_input_cost_usd'),
+                DB::raw('SUM(CASE WHEN status = "completed" THEN output_cost_usd ELSE 0 END) as total_output_cost_usd'),
+                DB::raw('AVG(CASE WHEN status = "completed" AND cost_usd IS NOT NULL THEN cost_usd ELSE NULL END) as avg_cost_usd'),
+                DB::raw('MAX(CASE WHEN status = "completed" THEN cost_usd ELSE NULL END) as max_cost_usd'),
+                DB::raw('COUNT(CASE WHEN over_budget = 1 THEN 1 ELSE NULL END) as over_budget_count'),
+            ])
+            ->where('conversation_id', $conversation->id)
+            ->first();
 
         return [
             'total_messages' => $conversation->messages()->count(),
-            'total_queries' => $queries->count(),
-            'completed_queries' => $queries->where('status', 'completed')->count(),
-            'failed_queries' => $queries->where('status', 'failed')->count(),
-            'total_duration_ms' => $queries->where('status', 'completed')->sum('duration_ms'),
-            'total_tokens' => $queries->where('status', 'completed')->sum(function ($query) {
-                return $query->usage_stats['total_tokens'] ?? 0;
-            }),
+            'total_queries' => $queryStats->total_queries ?? 0,
+            'completed_queries' => $queryStats->completed_queries ?? 0,
+            'failed_queries' => $queryStats->failed_queries ?? 0,
+            'pending_queries' => $queryStats->pending_queries ?? 0,
+            'processing_queries' => $queryStats->processing_queries ?? 0,
+            'total_duration_ms' => $queryStats->total_duration_ms ?? 0,
+            'avg_duration_ms' => round($queryStats->avg_duration_ms ?? 0, 2),
+            'total_tokens' => $tokenStats->total_tokens ?? 0,
+            'input_tokens' => $tokenStats->input_tokens ?? 0,
+            'output_tokens' => $tokenStats->output_tokens ?? 0,
+            'total_cost_usd' => round($costStats->total_cost_usd ?? 0, 6),
+            'total_input_cost_usd' => round($costStats->total_input_cost_usd ?? 0, 6),
+            'total_output_cost_usd' => round($costStats->total_output_cost_usd ?? 0, 6),
+            'avg_cost_usd' => round($costStats->avg_cost_usd ?? 0, 6),
+            'max_cost_usd' => round($costStats->max_cost_usd ?? 0, 6),
+            'over_budget_count' => $costStats->over_budget_count ?? 0,
         ];
     }
 }

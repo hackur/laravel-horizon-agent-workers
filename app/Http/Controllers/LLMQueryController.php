@@ -8,12 +8,25 @@ use Illuminate\Http\Request;
 
 class LLMQueryController extends Controller
 {
+    /**
+     * Constructor for LLMQueryController.
+     *
+     * @param  LLMQueryDispatcher  $dispatcher  Service for dispatching LLM queries
+     */
     public function __construct(
         protected LLMQueryDispatcher $dispatcher
     ) {}
 
     /**
      * Display a listing of LLM queries.
+     *
+     * Retrieves paginated LLM queries for the authenticated user with support for
+     * filtering by provider and status. Results are sorted by most recent first.
+     *
+     * @param  Request  $request  The HTTP request containing optional filters (provider, status)
+     * @return \Illuminate\View\View The LLM queries index view with pagination
+     *
+     * @throws \Illuminate\Auth\AuthenticationException If user is not authenticated
      */
     public function index(Request $request)
     {
@@ -32,6 +45,12 @@ class LLMQueryController extends Controller
 
     /**
      * Show the form for creating a new query.
+     *
+     * Returns a view with the query creation form and available LLM providers.
+     *
+     * @return \Illuminate\View\View The query creation form view
+     *
+     * @throws \Illuminate\Auth\AuthenticationException If user is not authenticated
      */
     public function create()
     {
@@ -42,6 +61,15 @@ class LLMQueryController extends Controller
 
     /**
      * Store a newly created query and dispatch to queue.
+     *
+     * Creates a new LLM query record and dispatches it to the appropriate queue
+     * based on the provider. The authenticated user is automatically assigned to the query.
+     *
+     * @param  Request  $request  The HTTP request with validated data (provider, prompt, model, options)
+     * @return \Illuminate\Http\RedirectResponse Redirect to the created query show page
+     *
+     * @throws \Illuminate\Auth\AuthenticationException If user is not authenticated
+     * @throws \Illuminate\Validation\ValidationException If validation fails
      */
     public function store(Request $request)
     {
@@ -74,6 +102,15 @@ class LLMQueryController extends Controller
 
     /**
      * Display the specified query.
+     *
+     * Retrieves and displays a specific LLM query with its response and metadata.
+     * Users can only view their own queries.
+     *
+     * @param  LLMQuery  $llmQuery  The query model to display
+     * @return \Illuminate\View\View The query show view
+     *
+     * @throws \Illuminate\Auth\AuthenticationException If user is not authenticated
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException (403) If user is not the query owner
      */
     public function show(LLMQuery $llmQuery)
     {
@@ -85,59 +122,5 @@ class LLMQueryController extends Controller
         return view('llm-queries.show', [
             'query' => $llmQuery,
         ]);
-    }
-
-    /**
-     * API endpoint to create a query.
-     */
-    public function apiStore(Request $request)
-    {
-        $validated = $request->validate([
-            'provider' => 'required|string|in:claude,ollama,lmstudio,claude-code,local-command',
-            'prompt' => 'required|string|min:1',
-            'model' => 'nullable|string',
-            'options' => 'nullable|array',
-        ]);
-
-        $query = $this->dispatcher->dispatch(
-            $validated['provider'],
-            $validated['prompt'],
-            $validated['model'] ?? null,
-            $validated['options'] ?? []
-        );
-
-        return response()->json([
-            'success' => true,
-            'query' => $query,
-        ], 201);
-    }
-
-    /**
-     * API endpoint to get query by ID.
-     */
-    public function apiShow(LLMQuery $llmQuery)
-    {
-        // Ensure user can only view their own queries
-        if ($llmQuery->user_id && $llmQuery->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access to query');
-        }
-
-        return response()->json($llmQuery);
-    }
-
-    /**
-     * API endpoint to list queries.
-     */
-    public function apiIndex(Request $request)
-    {
-        // Only show user's own queries
-        $queries = LLMQuery::query()
-            ->where('user_id', auth()->id())
-            ->when($request->provider, fn ($q, $provider) => $q->byProvider($provider))
-            ->when($request->status, fn ($q, $status) => $q->where('status', $status))
-            ->latest()
-            ->paginate($request->per_page ?? 20);
-
-        return response()->json($queries);
     }
 }

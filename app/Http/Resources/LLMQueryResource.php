@@ -40,10 +40,10 @@ class LLMQueryResource extends JsonResource
 
             // API navigation links
             'links' => [
-                'self' => route('api.llm-queries.show', $this->id),
+                'self' => url("/api/llm-queries/{$this->id}"),
                 'conversation' => $this->when(
                     $this->conversation_id,
-                    fn () => route('api.conversations.show', $this->conversation_id)
+                    fn () => url("/api/conversations/{$this->conversation_id}")
                 ),
             ],
         ];

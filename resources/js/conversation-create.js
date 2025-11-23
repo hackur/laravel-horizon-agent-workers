@@ -43,36 +43,11 @@ async function updateModels(providerKey, providers, modelSelect, modelSection) {
 
     // For LM Studio, fetch models from API
     if (providerKey === 'lmstudio') {
-        modelSelect.innerHTML = '<option value="">Loading models...</option>';
-        modelSection.classList.remove('hidden');
-
-        try {
-            const response = await fetch('/api/lmstudio/models');
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (data.success && data.models.length > 0) {
-                modelSelect.innerHTML = '<option value="">Select a model</option>';
-                data.models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model;
-                    option.textContent = model;
-                    modelSelect.appendChild(option);
-                });
-                notify.success(`Loaded ${data.models.length} models from LM Studio`, 2000);
-            } else {
-                modelSelect.innerHTML = '<option value="">No models available</option>';
-                notify.warning('No models available. Is LM Studio running?', 4000);
-            }
-        } catch (error) {
-            console.error('Failed to fetch LM Studio models:', error);
-            modelSelect.innerHTML = '<option value="">Failed to load models</option>';
-            notify.error('Failed to load models. Check if LM Studio is running.', 5000);
-        }
+        await fetchDynamicModels('/lmstudio/models', 'LM Studio', modelSelect, modelSection);
+    }
+    // For Ollama, fetch models from API
+    else if (providerKey === 'ollama') {
+        await fetchDynamicModels('/ollama/models', 'Ollama', modelSelect, modelSection);
     }
     // For other providers with static models
     else if (provider && provider.models && provider.models.length > 0) {
@@ -86,5 +61,41 @@ async function updateModels(providerKey, providers, modelSelect, modelSection) {
         modelSection.classList.remove('hidden');
     } else {
         modelSection.classList.add('hidden');
+    }
+}
+
+/**
+ * Fetch models dynamically from API endpoint
+ */
+async function fetchDynamicModels(endpoint, providerName, modelSelect, modelSection) {
+    modelSelect.innerHTML = '<option value="">Loading models...</option>';
+    modelSection.classList.remove('hidden');
+
+    try {
+        const response = await fetch(endpoint);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.models.length > 0) {
+            modelSelect.innerHTML = '<option value="">Select a model</option>';
+            data.models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                modelSelect.appendChild(option);
+            });
+            notify.success(`Loaded ${data.models.length} models from ${providerName}`, 2000);
+        } else {
+            modelSelect.innerHTML = '<option value="">No models available</option>';
+            notify.warning(`No models available. Is ${providerName} running?`, 4000);
+        }
+    } catch (error) {
+        console.error(`Failed to fetch ${providerName} models:`, error);
+        modelSelect.innerHTML = '<option value="">Failed to load models</option>';
+        notify.error(`Failed to load models. Check if ${providerName} is running.`, 5000);
     }
 }

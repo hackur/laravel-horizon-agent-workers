@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ConversationApiController;
 use App\Http\Controllers\Api\LLMQueryApiController;
+use App\Http\Controllers\Api\ProviderHealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,12 +15,17 @@ use Illuminate\Support\Facades\Route;
 
 /**
  * @api {get} /api/user Get Authenticated User
+ *
  * @apiName GetAuthenticatedUser
+ *
  * @apiGroup Authentication
+ *
  * @apiVersion 1.0.0
  *
  * @apiHeader {String} Authorization Bearer {token}
+ *
  * @apiSuccess {Object} user The authenticated user object
+ *
  * @apiSuccessExample {json} Success-Response:
  *     HTTP/1.1 200 OK
  *     {
@@ -43,6 +49,57 @@ Route::middleware(['throttle:60,1'])->group(function () {
             'timestamp' => now()->toIso8601String(),
         ]);
     });
+
+    /**
+     * @api {get} /api/providers/health Get All Provider Health Status
+     *
+     * @apiName GetAllProviderHealth
+     *
+     * @apiGroup Provider Health
+     *
+     * @apiVersion 1.0.0
+     *
+     * @apiParam {Boolean} [cache=true] Use cached results
+     *
+     * @apiSuccess {String} overall_status Overall system health (healthy, degraded, critical)
+     * @apiSuccess {Object} providers Health status for each provider
+     * @apiSuccess {Boolean} cached Whether results are from cache
+     * @apiSuccess {Number} cache_ttl Cache TTL in seconds
+     */
+    Route::get('/providers/health', [ProviderHealthController::class, 'index']);
+
+    /**
+     * @api {get} /api/providers/health/summary Get Provider Health Summary
+     *
+     * @apiName GetProviderHealthSummary
+     *
+     * @apiGroup Provider Health
+     *
+     * @apiVersion 1.0.0
+     *
+     * @apiSuccess {Object} summary Providers grouped by status
+     * @apiSuccess {Object} counts Count of providers in each status
+     * @apiSuccess {String} overall_status Overall system health
+     */
+    Route::get('/providers/health/summary', [ProviderHealthController::class, 'summary']);
+
+    /**
+     * @api {get} /api/providers/health/:provider Get Specific Provider Health
+     *
+     * @apiName GetProviderHealth
+     *
+     * @apiGroup Provider Health
+     *
+     * @apiVersion 1.0.0
+     *
+     * @apiParam {String} provider Provider name (claude, ollama, lmstudio, local-command)
+     * @apiParam {Boolean} [cache=true] Use cached results
+     *
+     * @apiSuccess {String} provider Provider name
+     * @apiSuccess {Object} health Health status object
+     * @apiSuccess {Boolean} cached Whether results are from cache
+     */
+    Route::get('/providers/health/{provider}', [ProviderHealthController::class, 'show']);
 });
 
 /**
@@ -54,14 +111,19 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     /**
      * @api {get} /api/conversations List Conversations
+     *
      * @apiName ListConversations
+     *
      * @apiGroup Conversations
+     *
      * @apiVersion 1.0.0
      *
      * @apiHeader {String} Authorization Bearer {token}
+     *
      * @apiParam {String} [provider] Filter by LLM provider
      * @apiParam {String} [search] Search in conversation titles
      * @apiParam {Number} [page=1] Page number for pagination
+     *
      * @apiSuccess {Object[]} data Array of conversation objects
      * @apiSuccess {Object} meta Pagination metadata
      */
@@ -69,13 +131,18 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     /**
      * @api {post} /api/conversations/:id/messages Add Message to Conversation
+     *
      * @apiName AddConversationMessage
+     *
      * @apiGroup Conversations
+     *
      * @apiVersion 1.0.0
      *
      * @apiHeader {String} Authorization Bearer {token}
+     *
      * @apiParam {Number} id Conversation ID
      * @apiParam {String} prompt The message content
+     *
      * @apiSuccess {Object} data The created message object
      */
     Route::post('/conversations/{conversation}/messages', [ConversationApiController::class, 'addMessage'])
@@ -83,14 +150,19 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     /**
      * @api {get} /api/llm-queries List LLM Queries
+     *
      * @apiName ListLLMQueries
+     *
      * @apiGroup LLM Queries
+     *
      * @apiVersion 1.0.0
      *
      * @apiHeader {String} Authorization Bearer {token}
+     *
      * @apiParam {String} [provider] Filter by provider (claude, ollama, lmstudio, local-command)
      * @apiParam {String} [status] Filter by status (pending, processing, completed, failed)
      * @apiParam {Number} [per_page=20] Items per page
+     *
      * @apiSuccess {Object[]} data Array of query objects
      * @apiSuccess {Object} meta Pagination metadata
      */
@@ -99,16 +171,54 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     /**
      * @api {get} /api/lmstudio/models Get Available LM Studio Models
+     *
      * @apiName GetLMStudioModels
+     *
      * @apiGroup LLM
+     *
      * @apiVersion 1.0.0
      *
      * @apiHeader {String} Authorization Bearer {token}
+     *
      * @apiSuccess {Boolean} success Request success status
      * @apiSuccess {String[]} models Array of available model names
      * @apiSuccess {Boolean} cached Whether the result was cached
      */
     Route::get('/lmstudio/models', [ConversationApiController::class, 'getLMStudioModels']);
+
+    /**
+     * @api {get} /api/ollama/models Get Available Ollama Models
+     *
+     * @apiName GetOllamaModels
+     *
+     * @apiGroup LLM
+     *
+     * @apiVersion 1.0.0
+     *
+     * @apiHeader {String} Authorization Bearer {token}
+     *
+     * @apiSuccess {Boolean} success Request success status
+     * @apiSuccess {String[]} models Array of available model names
+     * @apiSuccess {Boolean} cached Whether the result was cached
+     */
+    Route::get('/ollama/models', [ConversationApiController::class, 'getOllamaModels']);
+
+    /**
+     * @api {post} /api/providers/health/clear-cache Clear Provider Health Cache
+     *
+     * @apiName ClearProviderHealthCache
+     *
+     * @apiGroup Provider Health
+     *
+     * @apiVersion 1.0.0
+     *
+     * @apiHeader {String} Authorization Bearer {token}
+     *
+     * @apiParam {String} [provider] Specific provider to clear cache for (if not provided, clears all)
+     *
+     * @apiSuccess {String} message Success message
+     */
+    Route::post('/providers/health/clear-cache', [ProviderHealthController::class, 'clearCache']);
 });
 
 /**
@@ -118,11 +228,15 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 Route::middleware(['auth:sanctum', 'throttle:10,1'])->group(function () {
     /**
      * @api {get} /api/tokens List API Tokens
+     *
      * @apiName ListTokens
+     *
      * @apiGroup API Tokens
+     *
      * @apiVersion 1.0.0
      *
      * @apiHeader {String} Authorization Bearer {token}
+     *
      * @apiSuccess {Object[]} data Array of token objects (without actual token values)
      */
     Route::get('/tokens', function (Request $request) {
@@ -142,13 +256,18 @@ Route::middleware(['auth:sanctum', 'throttle:10,1'])->group(function () {
 
     /**
      * @api {post} /api/tokens Create API Token
+     *
      * @apiName CreateToken
+     *
      * @apiGroup API Tokens
+     *
      * @apiVersion 1.0.0
      *
      * @apiHeader {String} Authorization Session authentication
+     *
      * @apiParam {String} name Token name/description
      * @apiParam {String[]} [abilities=['*']] Token abilities/permissions
+     *
      * @apiSuccess {String} token The plain-text API token (only shown once)
      * @apiSuccess {Object} tokenObject The token object metadata
      */
@@ -178,18 +297,23 @@ Route::middleware(['auth:sanctum', 'throttle:10,1'])->group(function () {
 
     /**
      * @api {delete} /api/tokens/:id Delete API Token
+     *
      * @apiName DeleteToken
+     *
      * @apiGroup API Tokens
+     *
      * @apiVersion 1.0.0
      *
      * @apiHeader {String} Authorization Session authentication
+     *
      * @apiParam {Number} id Token ID
+     *
      * @apiSuccess {String} message Success message
      */
     Route::delete('/tokens/{tokenId}', function (Request $request, $tokenId) {
         $token = $request->user()->tokens()->find($tokenId);
 
-        if (!$token) {
+        if (! $token) {
             return response()->json([
                 'message' => 'Token not found',
             ], 404);

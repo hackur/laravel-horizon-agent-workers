@@ -113,6 +113,11 @@
                 @endif
             </div>
 
+            <!-- Provider Health Status -->
+            <div class="mb-6">
+                <x-provider-health-widget />
+            </div>
+
             <!-- Quick Actions -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <a href="{{ route('conversations.create') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:shadow-md transition">

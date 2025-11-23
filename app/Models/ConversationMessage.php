@@ -19,11 +19,24 @@ class ConversationMessage extends Model
         'metadata' => 'array',
     ];
 
+    /**
+     * Get the conversation this message belongs to.
+     *
+     * @return BelongsTo The conversation relationship
+     */
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);
     }
 
+    /**
+     * Get the LLM query associated with this message (if any).
+     *
+     * Typically populated for assistant messages that are responses from LLM queries.
+     * User messages may not have an associated query.
+     *
+     * @return BelongsTo The llm query relationship
+     */
     public function llmQuery(): BelongsTo
     {
         return $this->belongsTo(LLMQuery::class);

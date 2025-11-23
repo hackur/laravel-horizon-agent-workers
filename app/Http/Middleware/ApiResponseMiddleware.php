@@ -22,7 +22,7 @@ class ApiResponseMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         // Add JSON accept header if not present
-        if (!$request->headers->has('Accept')) {
+        if (! $request->headers->has('Accept')) {
             $request->headers->set('Accept', 'application/json');
         }
 
