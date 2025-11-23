@@ -21,7 +21,7 @@ Route::middleware([
 
     // Conversations
     Route::resource('conversations', ConversationController::class)
-        ->only(['index', 'create', 'store', 'show']);
+        ->only(['index', 'create', 'store', 'show', 'destroy', 'update']);
     Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'addMessage'])
         ->name('conversations.add-message');
 
@@ -35,4 +35,7 @@ Route::prefix('api')->group(function () {
     Route::post('/llm/query', [LLMQueryController::class, 'apiStore'])->name('api.llm-queries.store');
     Route::get('/llm/query/{llmQuery}', [LLMQueryController::class, 'apiShow'])->name('api.llm-queries.show');
     Route::get('/llm/queries', [LLMQueryController::class, 'apiIndex'])->name('api.llm-queries.index');
+
+    // LM Studio models
+    Route::get('/lmstudio/models', [ConversationController::class, 'getLMStudioModels'])->name('api.lmstudio.models');
 });

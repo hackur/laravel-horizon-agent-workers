@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Jobs\LLM\Claude\ClaudeQueryJob;
-use App\Jobs\LLM\ClaudeCodeQueryJob;
 use App\Jobs\LLM\LMStudio\LMStudioQueryJob;
 use App\Jobs\LLM\LocalCommandJob;
 use App\Jobs\LLM\Ollama\OllamaQueryJob;
@@ -52,7 +51,6 @@ class LLMQueryDispatcher
             'claude' => new ClaudeQueryJob($prompt, $model, $llmQueryId, $options),
             'ollama' => new OllamaQueryJob($prompt, $model, $llmQueryId, $options),
             'lmstudio' => new LMStudioQueryJob($prompt, $model, $llmQueryId, $options),
-            'claude-code' => new ClaudeCodeQueryJob($prompt, $model, $llmQueryId, $options),
             'local-command' => new LocalCommandJob($prompt, $model, $llmQueryId, $options),
             default => throw new InvalidArgumentException("Unsupported provider: {$provider}"),
         };
@@ -82,15 +80,9 @@ class LLMQueryDispatcher
                 'queue' => 'llm-local',
                 'models' => ['local-model'],
             ],
-            'claude-code' => [
-                'name' => 'Claude Code CLI',
-                'description' => 'Claude Code command-line interface',
-                'queue' => 'llm-local',
-                'models' => [],
-            ],
             'local-command' => [
-                'name' => 'Local Command Execution',
-                'description' => 'Execute any local shell command with your user environment (e.g., claude, curl, python)',
+                'name' => 'Local Command (Claude Code, etc.)',
+                'description' => 'Execute local commands with your shell environment - Use "claude" for Claude Code CLI (requires authentication)',
                 'queue' => 'llm-local',
                 'models' => [],
             ],

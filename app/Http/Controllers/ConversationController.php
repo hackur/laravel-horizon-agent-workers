@@ -6,6 +6,8 @@ use App\Models\Conversation;
 use App\Services\ConversationService;
 use App\Services\LLMQueryDispatcher;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class ConversationController extends Controller
 {
@@ -59,7 +61,7 @@ class ConversationController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'provider' => 'required|string|in:claude,ollama,lmstudio,claude-code,local-command',
+            'provider' => 'required|string|in:claude,ollama,lmstudio,local-command',
             'model' => 'nullable|string',
             'prompt' => 'required|string|min:1',
         ]);
@@ -165,5 +167,89 @@ class ConversationController extends Controller
         return redirect()
             ->route('conversations.show', $conversation)
             ->with('success', 'Message added and query dispatched!');
+    }
+
+    /**
+     * Fetch available models from LM Studio (with caching).
+     */
+    public function getLMStudioModels()
+    {
+        try {
+            // Cache for 5 minutes to reduce API calls
+            $models = Cache::remember('lmstudio.models', 300, function () {
+                $baseUrl = env('LMSTUDIO_BASE_URL', 'http://127.0.0.1:1234');
+
+                $response = Http::timeout(5)
+                    ->get("{$baseUrl}/v1/models");
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    return collect($data['data'] ?? [])
+                        ->pluck('id')
+                        ->values()
+                        ->toArray();
+                }
+
+                throw new \Exception('Failed to fetch models from LM Studio');
+            });
+
+            return response()->json([
+                'success' => true,
+                'models' => $models,
+                'cached' => true,
+            ]);
+        } catch (\Exception $e) {
+            // Clear cache on error so next request will retry
+            Cache::forget('lmstudio.models');
+
+            return response()->json([
+                'success' => false,
+                'error' => 'LM Studio is not running or not accessible: ' . $e->getMessage(),
+                'models' => [],
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a conversation.
+     */
+    public function update(Request $request, Conversation $conversation)
+    {
+        // Ensure user can only update their own conversations
+        if ($conversation->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to conversation');
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+
+        $conversation->update([
+            'title' => $validated['title'],
+        ]);
+
+        return redirect()
+            ->route('conversations.show', $conversation)
+            ->with('success', 'Conversation title updated successfully.');
+    }
+
+    /**
+     * Delete a conversation.
+     */
+    public function destroy(Conversation $conversation)
+    {
+        // Ensure user can only delete their own conversations
+        if ($conversation->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to conversation');
+        }
+
+        $title = $conversation->title;
+
+        // Delete the conversation (cascade will handle messages and queries)
+        $conversation->delete();
+
+        return redirect()
+            ->route('conversations.index')
+            ->with('success', "Conversation \"{$title}\" deleted successfully.");
     }
 }

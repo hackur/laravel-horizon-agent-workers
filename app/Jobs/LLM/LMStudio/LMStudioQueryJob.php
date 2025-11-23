@@ -19,7 +19,7 @@ class LMStudioQueryJob extends BaseLLMJob
     {
         $baseUrl = $this->options['base_url'] ?? 'http://127.0.0.1:1234/v1';
         $model = $this->model ?? 'local-model';
-        $maxTokens = $this->options['max_tokens'] ?? 1024;
+        $maxTokens = $this->options['max_tokens'] ?? (1024*10);
         $temperature = $this->options['temperature'] ?? 0.7;
 
         // Use a longer timeout for reasoning models (e.g., Magistral)

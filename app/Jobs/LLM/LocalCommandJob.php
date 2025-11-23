@@ -33,15 +33,25 @@ class LocalCommandJob extends BaseLLMJob
     {
         $command = $this->buildCommand();
 
-        // Wrap command to run in user's shell with their profile loaded
-        // This ensures authentication tokens, PATH, and other config are available
+        // Get user's home directory
+        $home = getenv('HOME') ?: posix_getpwuid(posix_getuid())['dir'];
+
+        // Use user's login shell
         $shell = $this->shell ?? getenv('SHELL') ?: '/bin/zsh';
 
-        // Use login shell (-l) to load profile/rc files
-        $wrappedCommand = "{$shell} -l -c " . escapeshellarg($command);
+        // Build command that ensures we're in the user's environment
+        // Use interactive login shell (-l -i) to source both .zprofile and .zshrc
+        // This ensures the full user environment including .zshrc configuration
+        $wrappedCommand = sprintf(
+            'cd %s && HOME=%s USER=%s %s -l -i -c %s',
+            escapeshellarg($this->workingDirectory),
+            escapeshellarg($home),
+            escapeshellarg(get_current_user()),
+            $shell,
+            escapeshellarg($command)
+        );
 
         $result = Process::timeout($this->timeout)
-            ->path($this->workingDirectory)
             ->env($this->getEnvironment())
             ->run($wrappedCommand);
 
@@ -98,7 +108,21 @@ class LocalCommandJob extends BaseLLMJob
             'SHELL',
             'LANG',
             'LC_ALL',
-            'ANTHROPIC_API_KEY', // For Claude Code CLI
+            'TMPDIR',
+            // Claude Code / Anthropic
+            'ANTHROPIC_API_KEY',
+            'ANTHROPIC_BASE_URL',
+            'CLAUDE_CONFIG_PATH',
+            'CLAUDE_CODE_ENTRYPOINT',
+            'CLAUDE_CODE_SSE_PORT',
+            'CLAUDECODE',
+            'XDG_CONFIG_HOME',
+            // asdf
+            'ASDF_DIR',
+            'ASDF_DATA_DIR',
+            'ASDF_INSTALL_PATH',
+            'ASDF_INSTALL_TYPE',
+            'ASDF_INSTALL_VERSION',
         ];
 
         foreach ($preserveVars as $var) {
