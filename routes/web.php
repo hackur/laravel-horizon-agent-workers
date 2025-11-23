@@ -28,17 +28,8 @@ Route::middleware([
     // LLM Queries
     Route::resource('llm-queries', LLMQueryController::class)
         ->only(['index', 'create', 'store', 'show']);
-});
 
-// API Routes for LLM Queries - Protected with authentication
-Route::prefix('api')->middleware([
-    'auth:sanctum',
-    config('jetstream.auth_session'),
-])->group(function () {
-    Route::post('/llm/query', [LLMQueryController::class, 'apiStore'])->name('api.llm-queries.store');
-    Route::get('/llm/query/{llmQuery}', [LLMQueryController::class, 'apiShow'])->name('api.llm-queries.show');
-    Route::get('/llm/queries', [LLMQueryController::class, 'apiIndex'])->name('api.llm-queries.index');
-
-    // LM Studio models
-    Route::get('/lmstudio/models', [ConversationController::class, 'getLMStudioModels'])->name('api.lmstudio.models');
+    // LM Studio models endpoint for web UI
+    Route::get('/lmstudio/models', [ConversationController::class, 'getLMStudioModels'])
+        ->name('lmstudio.models');
 });

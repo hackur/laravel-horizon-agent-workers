@@ -78,7 +78,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
      * @apiParam {String} prompt The message content
      * @apiSuccess {Object} data The created message object
      */
-    Route::post('/conversations/{conversation}/messages', [ConversationApiController::class, 'addMessage']);
+    Route::post('/conversations/{conversation}/messages', [ConversationApiController::class, 'addMessage'])
+        ->name('conversations.messages.store');
 
     /**
      * @api {get} /api/llm-queries List LLM Queries

@@ -4,8 +4,23 @@ import laravel from 'laravel-vite-plugin';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+                'resources/js/conversation-show.js',
+                'resources/js/conversation-create.js'
+            ],
             refresh: true,
         }),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor': ['marked', 'dompurify'],
+                    'highlight': ['highlight.js/lib/core'],
+                },
+            },
+        },
+    },
 });

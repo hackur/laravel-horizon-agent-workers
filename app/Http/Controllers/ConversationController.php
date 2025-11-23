@@ -26,14 +26,15 @@ class ConversationController extends Controller
             ->with(['messages' => fn ($q) => $q->latest()->limit(1)])
             ->withCount('messages');
 
-        // Filter by provider if specified
-        if ($request->provider) {
+        // Filter by provider if specified (validate input)
+        if ($request->provider && in_array($request->provider, ['claude', 'ollama', 'lmstudio', 'local-command'])) {
             $query->where('provider', $request->provider);
         }
 
-        // Search by title
+        // Search by title (sanitize input)
         if ($request->search) {
-            $query->where('title', 'like', '%'.$request->search.'%');
+            $search = substr($request->search, 0, 255); // Limit length
+            $query->where('title', 'like', '%'.$search.'%');
         }
 
         $conversations = $query->latest('last_message_at')->paginate(15);
@@ -62,8 +63,8 @@ class ConversationController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'provider' => 'required|string|in:claude,ollama,lmstudio,local-command',
-            'model' => 'nullable|string',
-            'prompt' => 'required|string|min:1',
+            'model' => 'nullable|string|max:255',
+            'prompt' => 'required|string|min:1|max:100000',
         ]);
 
         $conversation = Conversation::create([
@@ -133,7 +134,7 @@ class ConversationController extends Controller
         }
 
         $validated = $request->validate([
-            'prompt' => 'required|string|min:1',
+            'prompt' => 'required|string|min:1|max:100000',
         ]);
 
         // Add the user's message
