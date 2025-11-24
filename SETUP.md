@@ -614,3 +614,23 @@ php artisan horizon:clear
 - [Anthropic API Documentation](https://docs.anthropic.com/)
 - [Ollama Documentation](https://ollama.ai/docs)
 - [LM Studio Documentation](https://lmstudio.ai/docs)
+### 3.1 Enable Telescope (optional but recommended)
+
+```bash
+composer require laravel/telescope --dev
+php artisan telescope:install
+php artisan migrate
+```
+
+Access at `http://localhost:8000/telescope`. In non-local environments, access is restricted to users with the `admin` team role.
+
+### 3.2 Seed Admin User and Roles
+
+```bash
+php artisan db:seed --class=UserSeeder
+```
+
+Credentials:
+
+- Admin: `admin@example.com` / `password` (assigned `admin` role on their team)
+- Test: `test@example.com` / `password` (assigned `editor` role on admin's team)
