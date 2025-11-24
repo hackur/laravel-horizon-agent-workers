@@ -1,92 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create LLM Query</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8 max-w-2xl">
-        <div class="mb-6">
-            <a href="{{ route('llm-queries.index') }}" class="text-blue-600 hover:text-blue-900">&larr; Back to Queries</a>
-        </div>
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Create New LLM Query</h2>
+    </x-slot>
 
-        <div class="bg-white shadow-md rounded-lg p-6">
-            <h1 class="text-2xl font-bold mb-6">Create New LLM Query</h1>
+    <div class="py-12">
+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900">
+                    <div class="mb-6">
+                        <a href="{{ route('llm-queries.index') }}" class="text-blue-600 hover:text-blue-900">&larr; Back to Queries</a>
+                    </div>
 
-            <form method="POST" action="{{ route('llm-queries.store') }}">
-                @csrf
+                    <form method="POST" action="{{ route('llm-queries.store') }}" class="space-y-6">
+                        @csrf
 
-                <div class="mb-4">
-                    <label for="provider" class="block text-gray-700 text-sm font-bold mb-2">Provider *</label>
-                    <select id="provider" name="provider" required class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" onchange="updateModels()">
-                        <option value="">Select a provider...</option>
-                        @foreach($providers as $key => $provider)
-                            <option value="{{ $key }}">{{ $provider['name'] }} - {{ $provider['description'] }}</option>
-                        @endforeach
-                    </select>
-                    @error('provider')
-                        <p class="text-red-500 text-xs italic">{{ $message }}</p>
-                    @enderror
+                        <div>
+                            <label for="provider" class="block text-sm font-medium text-gray-700">Provider *</label>
+                            <select id="provider" name="provider" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" onchange="updateModels()">
+                                <option value="">Select a provider...</option>
+                                @foreach($providers as $key => $provider)
+                                    <option value="{{ $key }}">{{ $provider['name'] }} - {{ $provider['description'] }}</option>
+                                @endforeach
+                            </select>
+                            @error('provider')
+                                <p class="mt-1 text-red-600 text-sm">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div id="modelSection" class="hidden">
+                            <label for="model" class="block text-sm font-medium text-gray-700">Model</label>
+                            <select id="model" name="model" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                <option value="">Default model</option>
+                            </select>
+                            @error('model')
+                                <p class="mt-1 text-red-600 text-sm">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div id="commandSection" class="hidden">
+                            <label for="command" class="block text-sm font-medium text-gray-700">Command</label>
+                            <input id="command" name="options[command]" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="e.g. claude {prompt} or ollama run {model} {prompt}" />
+                            <p class="mt-1 text-xs text-gray-500">Shown for Local Command provider. Use {prompt} and optionally {model} placeholders.</p>
+                        </div>
+
+                        <div>
+                            <label for="prompt" class="block text-sm font-medium text-gray-700">Prompt *</label>
+                            <textarea id="prompt" name="prompt" rows="6" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="Enter your prompt here...">{{ old('prompt') }}</textarea>
+                            @error('prompt')
+                                <p class="mt-1 text-red-600 text-sm">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">Dispatch Query</button>
+                            <a href="{{ route('llm-queries.index') }}" class="text-gray-600 hover:text-gray-900">Cancel</a>
+                        </div>
+                    </form>
                 </div>
-
-                <div class="mb-4" id="modelSection" style="display: none;">
-                    <label for="model" class="block text-gray-700 text-sm font-bold mb-2">Model</label>
-                    <select id="model" name="model" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                        <option value="">Default model</option>
-                    </select>
-                    @error('model')
-                        <p class="text-red-500 text-xs italic">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div class="mb-4">
-                    <label for="prompt" class="block text-gray-700 text-sm font-bold mb-2">Prompt *</label>
-                    <textarea id="prompt" name="prompt" rows="6" required class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your prompt here...">{{ old('prompt') }}</textarea>
-                    @error('prompt')
-                        <p class="text-red-500 text-xs italic">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div class="flex items-center justify-between">
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Dispatch Query
-                    </button>
-                    <a href="{{ route('llm-queries.index') }}" class="text-gray-600 hover:text-gray-900">Cancel</a>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
     <script>
         const providers = @json($providers);
-
         function updateModels() {
             const providerSelect = document.getElementById('provider');
             const modelSelect = document.getElementById('model');
             const modelSection = document.getElementById('modelSection');
+            const commandSection = document.getElementById('commandSection');
             const selectedProvider = providerSelect.value;
-
             if (selectedProvider && providers[selectedProvider]) {
                 const models = providers[selectedProvider].models;
-
-                // Clear existing options
                 modelSelect.innerHTML = '<option value="">Default model</option>';
-
-                // Add new options
                 models.forEach(model => {
                     const option = document.createElement('option');
                     option.value = model;
                     option.textContent = model;
                     modelSelect.appendChild(option);
                 });
-
-                modelSection.style.display = models.length > 0 ? 'block' : 'none';
+                modelSection.classList.toggle('hidden', models.length === 0);
+                commandSection.classList.toggle('hidden', selectedProvider !== 'local-command');
             } else {
-                modelSection.style.display = 'none';
+                modelSection.classList.add('hidden');
+                commandSection.classList.add('hidden');
             }
         }
     </script>
-</body>
-</html>
+</x-app-layout>

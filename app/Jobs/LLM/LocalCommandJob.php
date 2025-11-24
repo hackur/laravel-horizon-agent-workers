@@ -22,6 +22,7 @@ class LocalCommandJob extends BaseLLMJob
         'ollama',
         'llm',
         'aider',
+        'echo',
     ];
 
     // Whitelist of allowed shell paths

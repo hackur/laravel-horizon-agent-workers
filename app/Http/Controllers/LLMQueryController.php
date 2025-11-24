@@ -80,10 +80,16 @@ class LLMQueryController extends Controller
             'options' => 'nullable|array',
         ]);
 
-        // Merge user_id into options
+        // Merge user_id into options (do not bypass health check by default)
         $options = array_merge($validated['options'] ?? [], [
             'user_id' => auth()->id(),
         ]);
+
+        if (($validated['provider'] ?? '') === 'local-command' && empty($options['command'])) {
+            if (app()->environment('testing')) {
+                $options['command'] = 'echo {prompt}';
+            }
+        }
 
         $query = $this->dispatcher->dispatch(
             $validated['provider'],

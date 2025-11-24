@@ -1,24 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Queries</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold">LLM Queries</h1>
-            <div class="space-x-2">
-                <a href="{{ route('llm-queries.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    New Query
-                </a>
-                <a href="/horizon" target="_blank" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-                    Horizon Dashboard
-                </a>
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">LLM Queries</h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center mb-6">
+                <div class="space-x-2">
+                    <a href="{{ route('llm-queries.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">New Query</a>
+                    <a href="/horizon" target="_blank" class="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700">Horizon Dashboard</a>
+                </div>
             </div>
-        </div>
 
         @if(session('success'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
@@ -26,7 +18,7 @@
             </div>
         @endif
 
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
             <table class="min-w-full">
                 <thead class="bg-gray-200">
                     <tr>
@@ -82,6 +74,6 @@
         <div class="mt-4">
             {{ $queries->links() }}
         </div>
+        </div>
     </div>
-</body>
-</html>
+</x-app-layout>

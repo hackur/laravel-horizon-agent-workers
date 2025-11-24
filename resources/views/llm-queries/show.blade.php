@@ -1,16 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Query #{{ $query->id }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <div class="mb-6">
-            <a href="{{ route('llm-queries.index') }}" class="text-blue-600 hover:text-blue-900">&larr; Back to Queries</a>
-        </div>
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Query #{{ $query->id }}</h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+            <div class="mb-6">
+                <a href="{{ route('llm-queries.index') }}" class="text-blue-600 hover:text-blue-900">&larr; Back to Queries</a>
+            </div>
 
         @if(session('success'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
@@ -18,7 +15,7 @@
             </div>
         @endif
 
-        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
             <div class="flex justify-between items-start mb-4">
                 <h1 class="text-2xl font-bold">Query #{{ $query->id }}</h1>
                 <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
@@ -95,7 +92,7 @@
             @endif
         </div>
 
-        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
             <h2 class="text-xl font-bold mb-4">Prompt</h2>
             <div class="bg-gray-50 p-4 rounded border border-gray-200">
                 <pre class="whitespace-pre-wrap text-sm">{{ $query->prompt }}</pre>
@@ -103,7 +100,7 @@
         </div>
 
         @if($query->response)
-        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
             <h2 class="text-xl font-bold mb-4">Response</h2>
             <div class="bg-gray-50 p-4 rounded border border-gray-200">
                 <pre class="whitespace-pre-wrap text-sm">{{ $query->response }}</pre>
@@ -149,6 +146,7 @@
                 </svg>
                 <span class="text-sm font-medium">Live Updates Active</span>
             </div>
+        </div>
         </div>
     </div>
 
@@ -216,5 +214,4 @@
             document.head.appendChild(style);
         });
     </script>
-</body>
-</html>
+</x-app-layout>
