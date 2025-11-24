@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Suppress Budget Warning
+    |--------------------------------------------------------------------------
+    |
+    | Suppress the warning about missing budget limits during environment
+    | validation. Set to true if you intentionally don't want to set budget
+    | limits or find the warning unnecessary.
+    |
+    */
+
+    'suppress_budget_warning' => env('LLM_SUPPRESS_BUDGET_WARNING', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Provider
     |--------------------------------------------------------------------------
     |

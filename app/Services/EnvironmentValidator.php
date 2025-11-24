@@ -525,8 +525,9 @@ class EnvironmentValidator
             $this->addWarning('LLM_MONTHLY_BUDGET_LIMIT_USD should be a positive number or null');
         }
 
-        // Warn if no limits are set
-        if (empty($budgetLimit) && empty($monthlyBudgetLimit)) {
+        // Warn if no limits are set (unless warning is suppressed)
+        $suppressWarning = config('llm.suppress_budget_warning', false);
+        if (! $suppressWarning && empty($budgetLimit) && empty($monthlyBudgetLimit)) {
             $this->addWarning('No budget limits set for LLM queries - consider setting limits to monitor costs');
         }
     }
