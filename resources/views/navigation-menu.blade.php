@@ -24,6 +24,9 @@
                     <x-nav-link href="{{ route('costs.index') }}" :active="request()->routeIs('costs.*')">
                         {{ __('Costs') }}
                     </x-nav-link>
+                    <x-nav-link href="{{ route('agent-runs.index') }}" :active="request()->routeIs('agent-runs.*')">
+                        🎭 {{ __('Agent Runs') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -159,6 +162,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link href="{{ route('costs.index') }}" :active="request()->routeIs('costs.*')">
                 {{ __('Costs') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link href="{{ route('agent-runs.index') }}" :active="request()->routeIs('agent-runs.*')">
+                🎭 {{ __('Agent Runs') }}
             </x-responsive-nav-link>
         </div>
 

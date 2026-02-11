@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentRunController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CostController;
 use App\Http\Controllers\LLMQueryController;
@@ -47,4 +48,10 @@ Route::middleware([
     // Ollama models endpoint for web UI
     Route::get('/ollama/models', [ConversationController::class, 'getOllamaModels'])
         ->name('ollama.models');
+
+    // Agent Runs (Orchestrator)
+    Route::resource('agent-runs', AgentRunController::class)
+        ->only(['index', 'create', 'store', 'show', 'destroy']);
+    Route::post('/agent-runs/dispatch', [AgentRunController::class, 'dispatch'])
+        ->name('agent-runs.dispatch');
 });

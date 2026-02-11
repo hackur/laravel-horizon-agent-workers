@@ -88,6 +88,8 @@ return [
         'redis:llm-claude' => 120,
         'redis:llm-ollama' => 300,
         'redis:llm-local' => 300,
+        'redis:llm-openclaw' => 600,
+        'redis:llm-orchestrator' => 1800,
     ],
 
     /*
@@ -252,6 +254,34 @@ return [
                 'memory' => 512,
                 'tries' => 3,
                 'timeout' => 900,
+                'nice' => 0,
+            ],
+            'llm-openclaw-supervisor' => [
+                'connection' => 'redis',
+                'queue' => ['llm-openclaw'],
+                'balance' => 'auto',
+                'autoScalingStrategy' => 'time',
+                'maxProcesses' => 2,
+                'minProcesses' => 1,
+                'maxTime' => 0,
+                'maxJobs' => 0,
+                'memory' => 512,
+                'tries' => 3,
+                'timeout' => 1800,  // 30 min for agent tasks
+                'nice' => 0,
+            ],
+            'llm-orchestrator-supervisor' => [
+                'connection' => 'redis',
+                'queue' => ['llm-orchestrator'],
+                'balance' => 'auto',
+                'autoScalingStrategy' => 'time',
+                'maxProcesses' => 1,  // Single orchestrator at a time
+                'minProcesses' => 1,
+                'maxTime' => 0,
+                'maxJobs' => 0,
+                'memory' => 512,
+                'tries' => 1,  // Don't retry orchestration
+                'timeout' => 3600,  // 1 hour for full cycle
                 'nice' => 0,
             ],
             'default-supervisor' => [

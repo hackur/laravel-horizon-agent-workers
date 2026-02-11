@@ -139,8 +139,44 @@ PHPUnit is configured with:
 - `config/queue.php` - Queue configuration
 - `.env.example` - Environment variable template
 
+## OpenClaw Integration
+
+The project includes OpenClaw integration for AI agent workflows:
+
+### Quick Start
+
+```php
+use App\Jobs\LLM\OpenClaw\OpenClawJob;
+use App\Jobs\LLM\OpenClaw\OrchestratorJob;
+
+// Simple OpenClaw task
+OpenClawJob::dispatch('Explain SOLID principles', 'sonnet');
+
+// Multi-agent orchestration with review loop
+OrchestratorJob::dispatch(
+    task: 'Refactor UserController to use DTOs',
+    workingDirectory: '/path/to/project',
+    options: [
+        'agent_model' => 'sonnet',    // Fast worker
+        'reviewer_model' => 'opus',    // Thorough reviewer
+        'max_iterations' => 5,
+    ]
+);
+```
+
+### Key Files
+
+- `app/Jobs/LLM/OpenClaw/OpenClawJob.php` — Direct CLI execution
+- `app/Jobs/LLM/OpenClaw/OrchestratorJob.php` — Multi-agent workflow
+- `app/Services/AgentOrchestrator.php` — Orchestration logic
+- `app/Models/AgentRun.php` — Workflow tracking
+- `app/Models/AgentReview.php` — Review history
+- `config/orchestrator.php` — Configuration
+
+See `OPENCLAW_INTEGRATION.md` for full documentation.
+
 ## Notes
 
-- The project name "laravel-horizon-agent-workers" suggests this is for experimenting with Horizon's agent-based worker management
-- No custom jobs, agents, or workers are implemented yet - this is a fresh Laravel installation with Horizon added
-- Horizon configuration needs to be published before customizing supervisor/worker settings
+- Uses Laravel Horizon for queue management with specialized supervisors per LLM type
+- OpenClaw and orchestrator queues have longer timeouts (30min / 1hr)
+- Supports Claude, Ollama, LM Studio, and OpenClaw as LLM backends

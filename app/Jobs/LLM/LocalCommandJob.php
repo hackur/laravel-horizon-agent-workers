@@ -23,6 +23,7 @@ class LocalCommandJob extends BaseLLMJob
         'llm',
         'aider',
         'echo',
+        'openclaw',
     ];
 
     // Whitelist of allowed shell paths
